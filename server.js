@@ -1,34 +1,26 @@
-const express = require("express")
-const app = express()
-const dotenv = require("dotenv").config()
-const port = process.env.PORT || 5001
-const connectDb = require("./config/dbConnection")
-const authRoutes = require("./routes/authRoutes")
-const userRoutes = require("./routes/userRoutes")
-
-
+const express = require("express");
+const app = express();
+const dotenv = require("dotenv").config();
+const port = process.env.PORT || 5001;
+const connectDb = require("./config/dbConnection");
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+import healthcheckRouter from "./routes/healthCheck.js";
 
 //middlewares
-app.use(express.json())
+app.use(express.json());
 
 // database connetction
-connectDb()
-app.use(express.urlencoded({extended: true}))
-
+connectDb();
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use("/api/auth", authRoutes)
-app.use("/api/users", userRoutes)
-
-
-
-
-
-
-
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/v1/healthcheck", healthcheckRouter);
 
 //start the server
 
-app.listen(port ,(req,res)=>{
-    console.log(`Listining on port number ${port}`);
-})
+app.listen(port, (req, res) => {
+  console.log(`Listining on port number ${port}`);
+});
