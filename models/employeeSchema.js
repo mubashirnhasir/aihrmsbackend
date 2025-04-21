@@ -30,7 +30,7 @@ const employeeSchema = mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["active", "inavtive"], default: "active"
+        enum: ["active", "inactive"], default: "active"
     },
     profilePicture: {
         type: String, default: "uploads/profile.png"
@@ -40,7 +40,10 @@ const employeeSchema = mongoose.Schema({
     earnedLeaves: { type: Number, default: 2 },
     unpaidLeaves: { type: Number, default: 0 },
     assets: { type: Array, default: [] },
-    attendance: {type: Array, default: []}
+    attendance: { type: Array, default: [] },
+    otp: { type: String },
+    otpExpires: { type: Date },
+    isVerified: { type: Boolean, default: false }
 
 
 
