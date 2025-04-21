@@ -5,6 +5,7 @@ const port = process.env.PORT || 5001;
 const connectDb = require("./config/dbConnection");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const employeesRoutes = require("./routes/employeesRoutes");
 
 
 //middlewares
@@ -17,6 +18,9 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/employees", employeesRoutes);
+app.use("/uploads", express.static("uploads"));
+
 
 //start the server
 
