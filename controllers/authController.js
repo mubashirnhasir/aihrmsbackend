@@ -5,13 +5,13 @@ const jwt = require("jsonwebtoken");
 const register = async (req, res) => {
   console.log("Hittt Ho gayaayayayaaaa");
   try {
-    const { username, password, role } = req.body;
+    const { email, password, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, password: hashedPassword, role });
+    const newUser = new User({ email, password: hashedPassword, role });
     await newUser.save();
     res
       .status(201)
-      .json({ message: `User Registered with username ${username}` });
+      .json({ message: `User Registered with email ${email}` });
   } catch (error) {
     res.status(500).json({ message: `Something Went wrong ${error}` });
   }
@@ -19,11 +19,11 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: `No user found ${username}` });
+      return res.status(404).json({ message: `No user found ${email}` });
     }
 
     const isMatched = await bcrypt.compare(password, user.password);
@@ -41,7 +41,7 @@ const login = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: ` You have succussfully logged in ${username}`, token });
+      .json({ message: ` You have Successfully logged in ${email}`, token });
 
   } catch (error) {
     console.log(error);
