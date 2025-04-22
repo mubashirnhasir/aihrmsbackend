@@ -38,6 +38,8 @@ const employeeSchema = mongoose.Schema({
     profilePicture: {
         type: String, default: "uploads/profile.png"
     },
+    resetOtp: String,
+    resetOtpExpires: Date,
     casualLeaves: { type: Number, default: 2 },
     sickLeaves: { type: Number, default: 2 },
     earnedLeaves: { type: Number, default: 2 },

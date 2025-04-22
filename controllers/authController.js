@@ -1,12 +1,14 @@
 const User = require("../models/employeeSchema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto")
+const sendMail = require("../utils/forgotPasswordMail")
+
 const sendOtpEmail = require("../utils/sendMail");
 
 const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); 
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
-
 
 const register = async (req, res) => {
   try {
@@ -79,8 +81,6 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-
-
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -113,20 +113,68 @@ const login = async (req, res) => {
   }
 };
 
-const currentUser = async (req,res)=>{
-    try {
-        const existingUser = await User.findById(req.user.id).select("-password")
-        if(!existingUser){
-            res.status(401).json({message:"User not found"})
-        }
-        res.status(200).json({message:`The current user is `, user: existingUser })
-        
-    } catch (error) {
-        console.log("Error getting current user");
-        res.status(500).json({ message: "Server error" });
+const currentUser = async (req, res) => {
+  try {
+    const existingUser = await User.findById(req.user.id).select("-password")
+    if (!existingUser) {
+      res.status(401).json({ message: "User not found" })
     }
+    res.status(200).json({ message: `The current user is `, user: existingUser })
+
+  } catch (error) {
+    console.log("Error getting current user");
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body
+    const user = await User.findOne({ email })
+    if (!user) {
+      return res.status(404).json({ message: "No user found by given email" })
+    }
+
+    const otp = generateOtp()
+    user.resetOtp = otp;
+    user.resetOtpExpires = Date.now() + 10 * 60 * 2000
+    await user.save()
+
+    await sendMail(email, user.name, otp); // reuse the same Mailgen style
+    res.status(200).json({ message: "OTP sent to your email." });
+
+  } catch (error) {
+    console.log("Forgot password error:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+}
+
+const resetPassword = async (req, res) => {
+  try {
+    const {email,otp , newPassword} =req.body
+
+    const user = await User.findOne({
+      email,
+      resetOtp: otp,
+      resetOtpExpires: {$gt: Date.now() }
+    })
+
+    if(!user){
+      return res.status(400).json({message: "Invalid or expired OTP" })
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10)
+    user.otp = undefined;
+    user.resetOtpExpires = undefined;
+    await user.save();
+
+    res.status(200).json({message: "Password reset successfully"})
+
+  } catch (error) {
+    console.log("Reset password error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
 
 
-
-module.exports = { login, register, currentUser, verifyOtp};
+module.exports = { login, register, currentUser, verifyOtp, forgotPassword, resetPassword };
