@@ -10,17 +10,16 @@ const generateOtp = () => {
 
 const register = async (req, res) => {
   try {
-    const {  name,
+    const {
+      name,
       email,
       password,
-      phone,
-      department,
-      designation,
       role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = generateOtp()
 
     const newUser = new User({
+      name,
       email,
       password: hashedPassword,
       role,
@@ -29,13 +28,13 @@ const register = async (req, res) => {
       isVerified: false // ✅ MUST explicitly add this
     });
     await newUser.save();
-    await sendOtpEmail(email, email, otp)
+    await sendOtpEmail(email, name, otp)
     res
       .status(201)
       .json({ message: `User Registered with email ${email}` });
 
   } catch (error) {
-    res.status(500).json({ message: `Something Went wrong ${error}` });
+    res.status(500).json({ message: `Yeich hai Went wrong ${error}` });
   }
 };
 
