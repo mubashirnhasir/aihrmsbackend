@@ -1,34 +1,23 @@
-const express = require("express")
-const app = express()
-const dotenv = require("dotenv").config()
-const port = process.env.PORT || 5001
-const connectDb = require("./config/dbConnection")
-const authRoutes = require("./routes/authRoutes")
-const userRoutes = require("./routes/userRoutes")
+// server.js
+require("dotenv").config();
 
+const express = require("express");
+const cors = require("cors");
+const connectDb = require("./config/dbConnection");
+const authRoutes = require("./routes/authRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 
+const app = express();
+const PORT = process.env.PORT; 
 
-//middlewares
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// database connetction
-connectDb()
-app.use(express.urlencoded({extended: true}))
+connectDb();
+app.use("/api/auth", authRoutes);
+app.use("/api/employees", employeeRoutes);
 
-
-// Routes
-app.use("/api/auth", authRoutes)
-app.use("/api/users", userRoutes)
-
-
-
-
-
-
-
-
-//start the server
-
-app.listen(port ,(req,res)=>{
-    console.log(`Listining on port number ${port}`);
-})
+app.listen(PORT, () => {
+  console.log(`API listening on http://localhost:${PORT}`);
+});
