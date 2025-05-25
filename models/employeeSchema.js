@@ -1,63 +1,76 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+const CareerPathOption = new mongoose.Schema({
+  skillsSignature: String,
+  options: [String],
+  updatedAt: { type: Date, default: Date.now },
+  skillsHash: String,
+});
+const RoadmapTierSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  bullets: [{ type: String }],
+});
 
-const employeeSchema = mongoose.Schema({
-    name: {
-        type: String,
-        required: true
+const RoadmapSchema = new mongoose.Schema({
+  role: { type: String, required: true }, // e.g. “Data Engineer”
+  tiers: [RoadmapTierSchema], // always 4 tiers
+  createdAt: { type: Date, default: Date.now },
+});
+const employeeSchema = new mongoose.Schema(
+  {
+    name: String,
+    email: String,
+    phone: String,
+    department: String,
+    designation: String,
+    joiningDate: Date,
+    role: String,
+    status: String,
+    profilePicture: String,
+    casualLeaves: Number,
+    sickLeaves: Number,
+    earnedLeaves: Number,
+    unpaidLeaves: Number,
+    assets: Array,
+    careerPaths: [CareerPathOption],
+    studyPlans: {
+      type: [
+        {
+          skillName: { type: String, required: true },
+          modules: [
+            {
+              title: { type: String },
+              resources: [
+                {
+                  label: String,
+                  url: String,
+                },
+              ],
+              completed: { type: Boolean, default: false },
+            },
+          ],
+        },
+      ],
+      default: [],
     },
-    email: {
-        type: String,
-        required: true,
-        unique: true
+    skills: {
+      type: [
+        {
+          name: { type: String, required: true },
+          level: { type: String, default: "Beginner" },
+          category: { type: String },
+        },
+      ],
+      default: [],
     },
-    password: {
-        type: String,
+    recommendedSkills: {
+      type: [{ name: String }],
+      default: [],
     },
-    phone: {
-        type: String,
-    },
-    department: {
-        type: String,
-    },
-    designation: {
-        type: String,
+    roadmaps: [RoadmapSchema],
+  },
+  {
+    timestamps: true,
+  }
+);
 
-    },
-    joiningDate: {
-        type: Date,
-        default: Date.now
-    },
-    role: {
-        type: String,
-        default: "employee"
-    },
-    status: {
-        type: String,
-        enum: ["active", "inactive"], default: "active"
-    },
-    profilePicture: {
-        type: String, default: "uploads/profile.png"
-    },
-    resetOtp: String,
-    resetOtpExpires: Date,
-    casualLeaves: { type: Number, default: 2 },
-    sickLeaves: { type: Number, default: 2 },
-    earnedLeaves: { type: Number, default: 2 },
-    unpaidLeaves: { type: Number, default: 0 },
-    assets: { type: Array, default: [] },
-    attendance: { type: Array, default: [] },
-    otp: { type: String },
-    otpExpires: { type: Date },
-    isVerified: { type: Boolean, default: false }
-
-
-
-
-
-
-}, {
-    timestamps: true
-})
-
-
-module.exports = mongoose.model("Employee", employeeSchema)
+module.exports = mongoose.model("Employee", employeeSchema, "employees");
