@@ -1,49 +1,3 @@
-<<<<<<< HEAD
-const Employee = require("../models/employeeSchema");
-
-const createEmployee = async (req, res) => {
-  try {
-    const data = req.body;
-    const profilePath = req.file ? req.file.path.replace(/\\/g, "/") : "uploads/profile.png";
-    const employee = await Employee.create({
-      ...data,
-      profilePicture: profilePath
-    });
-
-    res.status(201).json(employee);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-const getAllEmployees = async (req, res) => {
-  const employees = await Employee.find();
-  res.json(employees);
-};
-
-const getEmployee = async (req, res) => {
-  const employee = await Employee.findById(req.params.id);
-  if (!employee) return res.status(404).json({ message: "Employee not found" });
-  res.json(employee);
-};
-
-const updateEmployee = async (req, res) => {
-  try {
-    const updatedData = { ...req.body };
-
-    if (req.file) {
-      updatedData.profilePicture = req.file.path;
-    }
-
-    const employee = await Employee.findByIdAndUpdate(
-      req.params.id,
-      updatedData,
-      { new: true }
-    );
-
-    res.json(employee);
-  } catch (err) {
-=======
 // controllers/employeeController.js
 require("dotenv").config();
 const crypto = require("crypto");
@@ -227,24 +181,10 @@ Return ONLY a JSON array of strings.`;
     res.json({ options, source: "openai" });
   } catch (err) {
     console.error("generateCareerPath →", err);
->>>>>>> pr-2
     res.status(500).json({ message: err.message });
   }
 };
 
-<<<<<<< HEAD
-const deleteEmployee = async (req, res) => {
-  await Employee.findByIdAndDelete(req.params.id);
-  res.json({ message: "Employee deleted successfully" });
-};
-
-module.exports = {
-  createEmployee,
-  getAllEmployees,
-  getEmployee,
-  updateEmployee,
-  deleteEmployee
-=======
 /* ───────────────────────── helper for roadmap ───────────────────────── */
 async function computeCareerPath(emp) {
   const skills = (emp.skills || []).map((s) => s.name);
@@ -373,5 +313,4 @@ module.exports = {
   saveStudyPlan,
   generateCareerPath,
   generateRoadmap,
->>>>>>> pr-2
 };
