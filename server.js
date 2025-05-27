@@ -4,7 +4,6 @@ const dotenv = require("dotenv").config();
 const port = process.env.PORT || 5001;
 const connectDb = require("./config/dbConnection");
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
 const employeesRoutes = require("./routes/employeesRoutes");
 
 
