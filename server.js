@@ -1,28 +1,33 @@
 const express = require("express");
-const app = express();
 const dotenv = require("dotenv").config();
-const port = process.env.PORT || 5001;
 const connectDb = require("./config/dbConnection");
+const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
-const employeesRoutes = require("./routes/employeesRoutes");
+const employeeRouter = require("./routes/employeeRoutes");
+
+const app = express();
+const port = process.env.PORT || 5001;
 
 
-//middlewares
+app.use(cors());
+
+// Middlewares
 app.use(express.json());
-
-// database connetction
-connectDb();
 app.use(express.urlencoded({ extended: true }));
+
+
+
+// Connect DB
+connectDb();
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/employees", employeesRoutes);
+app.use("/api/employees", employeeRouter); // ✅ DO NOT include non-existent userRoutes
+
+// Static files
 app.use("/uploads", express.static("uploads"));
 
-
-//start the server
-
-app.listen(port, (req, res) => {
-  console.log(`Listining on port number ${port}`);
+// Start server
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
 });
