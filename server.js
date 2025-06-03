@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes");
 const employeeRouter = require("./routes/employeeRoutes");
 const employeesRoutes = require("./routes/userRoutes");
 const userRoutes = require("./routes/userRoutes");
+const assetRoutes = require("./routes/assetRoutes");
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -25,6 +26,7 @@ connectDb();
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", userRoutes); 
+app.use("/api/assets", assetRoutes);
 
 // Static files
 app.use("/uploads", express.static("uploads"));
