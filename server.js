@@ -3,10 +3,10 @@ const dotenv = require("dotenv").config();
 const connectDb = require("./config/dbConnection");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
-const employeeRouter = require("./routes/employeeRoutes");
-const employeesRoutes = require("./routes/userRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 const userRoutes = require("./routes/userRoutes");
 const assetRoutes = require("./routes/assetRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
 
 const app = express();
 const port = process.env.PORT || 5001;

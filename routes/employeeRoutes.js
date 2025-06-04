@@ -1,6 +1,6 @@
 const express = require("express"); // ✅
 const employeeRouter = express.Router(); // ✅
-const { getEmployeeProfile, updateRecommendedSkills, markModuleComplete, saveStudyPlan, generateCareerPath, generateRoadmap   getEmployeeDashboard,
+const { getEmployeeProfile, updateRecommendedSkills, markModuleComplete, saveStudyPlan, generateCareerPath, generateRoadmap, getEmployeeDashboard,
   updateEmployeeProfile,
   getEmployeeAttendance,
   clockIn,
