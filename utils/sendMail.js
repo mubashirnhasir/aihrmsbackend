@@ -40,6 +40,8 @@ const sendOtpEmail = async(email ,name, otp)=>{
         }
     }
 
+
+    
     const emailBody = mailGenerator.generate(emailContent)
     const transporter = nodemailer.createTransport({
         service: "Gmail",
