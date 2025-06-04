@@ -1,6 +1,13 @@
 const express = require("express"); // ✅
 const employeeRouter = express.Router(); // ✅
-const { getEmployeeProfile, updateRecommendedSkills, markModuleComplete, saveStudyPlan, generateCareerPath, generateRoadmap, getEmployeeDashboard,
+const {
+  getEmployeeProfile,
+  updateRecommendedSkills,
+  markModuleComplete,
+  saveStudyPlan,
+  generateCareerPath,
+  generateRoadmap,
+  getEmployeeDashboard,
   updateEmployeeProfile,
   getEmployeeAttendance,
   clockIn,
@@ -11,8 +18,29 @@ const { getEmployeeProfile, updateRecommendedSkills, markModuleComplete, saveStu
   uploadDocument,
 } = require("../controllers/employeeController");
 const currentUserToken = require("../middlewares/currentUserMiddleware");
+const verifyToken = require("../middlewares/authMiddleware");
 
-employeeRouter.get("/profile", getEmployeeProfile);
+// Dashboard route
+employeeRouter.get("/dashboard", verifyToken, getEmployeeDashboard);
+
+// Profile routes
+employeeRouter.get("/profile", verifyToken, getEmployeeProfile);
+employeeRouter.put("/profile", verifyToken, updateEmployeeProfile);
+
+// Attendance routes
+employeeRouter.get("/attendance", verifyToken, getEmployeeAttendance);
+employeeRouter.post("/attendance/clock-in", verifyToken, clockIn);
+employeeRouter.post("/attendance/clock-out", verifyToken, clockOut);
+
+// Leave routes
+employeeRouter.get("/leaves", verifyToken, getEmployeeLeaves);
+employeeRouter.post("/leaves/request", verifyToken, requestLeave);
+
+// Document routes
+employeeRouter.get("/documents", verifyToken, getEmployeeDocuments);
+employeeRouter.post("/documents/upload", verifyToken, uploadDocument);
+
+// Career development routes
 employeeRouter.post("/updateRecommended", updateRecommendedSkills);
 employeeRouter.post("/study-plan/complete-module", markModuleComplete);
 employeeRouter.post("/study-plan/save", saveStudyPlan);

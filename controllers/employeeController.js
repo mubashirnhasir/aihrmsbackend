@@ -316,15 +316,17 @@ const getEmployeeDashboard = async (req, res) => {
 
     // Get today's attendance
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = today.toISOString().split("T")[0];
     const todayAttendance = employee.attendance.find(
-      att => att.date.toISOString().split('T')[0] === todayString
+      (att) => att.date.toISOString().split("T")[0] === todayString
     );
 
     // Calculate leave balance
     const currentYear = today.getFullYear();
     const yearlyLeaves = employee.leaveRequests.filter(
-      leave => new Date(leave.startDate).getFullYear() === currentYear && leave.status === 'approved'
+      (leave) =>
+        new Date(leave.startDate).getFullYear() === currentYear &&
+        leave.status === "approved"
     );
     const usedLeaves = yearlyLeaves.reduce((total, leave) => {
       const start = new Date(leave.startDate);
@@ -346,89 +348,232 @@ const getEmployeeDashboard = async (req, res) => {
         designation: employee.designation,
         department: employee.department,
         email: employee.email,
-        profilePicture: employee.profilePicture
+        profilePicture: employee.profilePicture,
       },
       attendance: {
         today: todayAttendance,
-        isCheckedIn: todayAttendance?.clockIn && !todayAttendance?.clockOut
+        isCheckedIn: todayAttendance?.clockIn && !todayAttendance?.clockOut,
       },
       leaves: {
         totalAllowed: 24, // Default annual leave
         used: usedLeaves,
         remaining: 24 - usedLeaves,
-        pending: employee.leaveRequests.filter(leave => leave.status === 'pending').length
+        pending: employee.leaveRequests.filter(
+          (leave) => leave.status === "pending"
+        ).length,
       },
       documents: {
         recent: recentDocuments,
-        total: employee.documents.length
+        total: employee.documents.length,
       },
       career: {
         skills: employee.skills?.length || 0,
         recommendedSkills: employee.recommendedSkills?.length || 0,
-        studyPlans: employee.studyPlans?.length || 0
-      }
+        studyPlans: employee.studyPlans?.length || 0,
+      },
     };
 
     res.status(200).json({
       message: "Dashboard data retrieved successfully",
-      data: dashboardData
+      data: dashboardData,
     });
-
   } catch (error) {
     console.error("Error getting employee dashboard:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+/* ---------------- updateEmployeeProfile -------------------- */
 const updateEmployeeProfile = async (req, res) => {
   try {
-    const {
-      personalInfo,
-      contactInfo,
-      emergencyContact,
-      bankDetails,
-      preferences
-    } = req.body;
+    const updateData = req.body;
 
-    const employee = await Employee.findById(req.user.id);
+    // Get employee ID from the authenticated user (set by auth middleware)
+    const employeeId = req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Validate that at least one valid section is provided
+    const validSections = [
+      "personalInfo",
+      "contactInfo",
+      "emergencyContact",
+      "bankDetails",
+      "preferences",
+    ];
+    const providedSections = Object.keys(updateData);
+    const validUpdate = providedSections.some((section) =>
+      validSections.includes(section)
+    );
+
+    if (!validUpdate) {
+      return res.status(400).json({
+        message: "At least one valid profile section must be provided",
+        validSections,
+      });
+    }
+
+    // Find the employee by ID from the token
+    const employee = await Employee.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Update allowed fields
-    if (personalInfo) {
-      employee.personalInfo = { ...employee.personalInfo, ...personalInfo };
-    }
-    if (contactInfo) {
-      employee.contactInfo = { ...employee.contactInfo, ...contactInfo };
-    }
-    if (emergencyContact) {
-      employee.emergencyContact = { ...employee.emergencyContact, ...emergencyContact };
-    }
-    if (bankDetails) {
-      employee.bankDetails = { ...employee.bankDetails, ...bankDetails };
-    }
-    if (preferences) {
-      employee.preferences = { ...employee.preferences, ...preferences };
+    // Build the update object based on the schema structure
+    const updateFields = {}; // Handle personalInfo section
+    if (updateData.personalInfo) {
+      const personalInfo = updateData.personalInfo;
+
+      // Map personalInfo fields to employee schema fields
+      if (personalInfo.firstName && personalInfo.lastName) {
+        updateFields.name =
+          `${personalInfo.firstName} ${personalInfo.lastName}`.trim();
+      } else if (personalInfo.firstName) {
+        // If only firstName is provided, keep existing lastName if available
+        const existingLastName = employee.name
+          ? employee.name.split(" ").slice(1).join(" ")
+          : "";
+        updateFields.name =
+          `${personalInfo.firstName} ${existingLastName}`.trim();
+      } else if (personalInfo.lastName) {
+        // If only lastName is provided, keep existing firstName if available
+        const existingFirstName = employee.name
+          ? employee.name.split(" ")[0]
+          : "";
+        updateFields.name =
+          `${existingFirstName} ${personalInfo.lastName}`.trim();
+      }
+
+      if (personalInfo.dateOfBirth)
+        updateFields.dateOfBirth = personalInfo.dateOfBirth;
+
+      // Handle address as nested object
+      if (
+        personalInfo.address ||
+        personalInfo.city ||
+        personalInfo.state ||
+        personalInfo.postalCode ||
+        personalInfo.country
+      ) {
+        updateFields.address = {
+          street:
+            personalInfo.address?.street ||
+            personalInfo.address ||
+            employee.address?.street ||
+            "",
+          city:
+            personalInfo.address?.city ||
+            personalInfo.city ||
+            employee.address?.city ||
+            "",
+          state:
+            personalInfo.address?.state ||
+            personalInfo.state ||
+            employee.address?.state ||
+            "",
+          country:
+            personalInfo.address?.country ||
+            personalInfo.country ||
+            employee.address?.country ||
+            "",
+          zipCode:
+            personalInfo.address?.postalCode ||
+            personalInfo.postalCode ||
+            personalInfo.address?.zipCode ||
+            employee.address?.zipCode ||
+            "",
+        };
+      }
+
+      // Handle phone number
+      if (personalInfo.phoneNumber)
+        updateFields.phone = personalInfo.phoneNumber;
     }
 
-    await employee.save();
+    // Handle contactInfo section
+    if (updateData.contactInfo) {
+      const contactInfo = updateData.contactInfo;
+      if (contactInfo.email) updateFields.email = contactInfo.email;
+      if (contactInfo.phone) updateFields.phone = contactInfo.phone;
+    }
 
-    res.status(200).json({
+    // Handle emergencyContact section
+    if (updateData.emergencyContact) {
+      const emergencyContact = updateData.emergencyContact;
+      updateFields.emergencyContact = {
+        name: emergencyContact.name || employee.emergencyContact?.name || "",
+        relationship:
+          emergencyContact.relationship ||
+          employee.emergencyContact?.relationship ||
+          "",
+        phone: emergencyContact.phone || employee.emergencyContact?.phone || "",
+        email: emergencyContact.email || employee.emergencyContact?.email || "",
+      };
+    }
+
+    // Handle bankDetails section (store as custom field since it's not in the schema)
+    if (updateData.bankDetails) {
+      // Since bank details aren't in the current schema, we'll store them as a custom field
+      updateFields.bankDetails = updateData.bankDetails;
+    }    // Handle preferences section (store as custom field since it's not in the schema)
+    if (updateData.preferences) {
+      updateFields.preferences = updateData.preferences;
+    }
+
+    // If this is an onboarding completion (multiple sections provided), mark as not first login
+    const isOnboardingCompletion = providedSections.length >= 3 || 
+      (updateData.personalInfo && updateData.emergencyContact && updateData.bankDetails);
+    
+    if (isOnboardingCompletion && employee.isFirstLogin) {
+      updateFields.isFirstLogin = false;
+    }
+
+    // Update the employee
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    res.json({
       message: "Profile updated successfully",
-      employee: employee
+      employee: updatedEmployee,
     });
+  } catch (err) {
+    console.error("updateEmployeeProfile →", err);
 
-  } catch (error) {
-    console.error("Error updating employee profile:", error);
-    res.status(500).json({ message: "Server error" });
+    // Handle validation errors
+    if (err.name === "ValidationError") {
+      const validationErrors = Object.values(err.errors).map((error) => ({
+        field: error.path,
+        message: error.message,
+      }));
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: validationErrors,
+      });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({
+        message: `${duplicateField} already exists`,
+      });
+    }
+
+    return res.status(500).json({ message: err.message });
   }
 };
 
 const getEmployeeAttendance = async (req, res) => {
   try {
     const { month, year } = req.query;
-    const employee = await Employee.findById(req.user.id).select("attendance name employeeId");
+    const employee = await Employee.findById(req.user.id).select(
+      "attendance name employeeId"
+    );
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -438,17 +583,19 @@ const getEmployeeAttendance = async (req, res) => {
 
     // Filter by month/year if provided
     if (month && year) {
-      attendanceData = attendanceData.filter(att => {
+      attendanceData = attendanceData.filter((att) => {
         const attDate = new Date(att.date);
-        return attDate.getMonth() === parseInt(month) - 1 && attDate.getFullYear() === parseInt(year);
+        return (
+          attDate.getMonth() === parseInt(month) - 1 &&
+          attDate.getFullYear() === parseInt(year)
+        );
       });
     }
 
     res.status(200).json({
       message: "Attendance data retrieved successfully",
-      attendance: attendanceData
+      attendance: attendanceData,
     });
-
   } catch (error) {
     console.error("Error getting employee attendance:", error);
     res.status(500).json({ message: "Server error" });
@@ -463,11 +610,11 @@ const clockIn = async (req, res) => {
     }
 
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
-    
+    const todayString = today.toISOString().split("T")[0];
+
     // Check if already clocked in today
     const existingAttendance = employee.attendance.find(
-      att => att.date.toISOString().split('T')[0] === todayString
+      (att) => att.date.toISOString().split("T")[0] === todayString
     );
 
     if (existingAttendance && existingAttendance.clockIn) {
@@ -480,7 +627,7 @@ const clockIn = async (req, res) => {
       employee.attendance.push({
         date: today,
         clockIn: today,
-        status: 'present'
+        status: "present",
       });
     }
 
@@ -488,9 +635,8 @@ const clockIn = async (req, res) => {
 
     res.status(200).json({
       message: "Clocked in successfully",
-      clockIn: today
+      clockIn: today,
     });
-
   } catch (error) {
     console.error("Error clocking in:", error);
     res.status(500).json({ message: "Server error" });
@@ -505,10 +651,10 @@ const clockOut = async (req, res) => {
     }
 
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
-    
+    const todayString = today.toISOString().split("T")[0];
+
     const todayAttendance = employee.attendance.find(
-      att => att.date.toISOString().split('T')[0] === todayString
+      (att) => att.date.toISOString().split("T")[0] === todayString
     );
 
     if (!todayAttendance || !todayAttendance.clockIn) {
@@ -520,7 +666,7 @@ const clockOut = async (req, res) => {
     }
 
     todayAttendance.clockOut = today;
-    
+
     // Calculate total hours
     const clockIn = new Date(todayAttendance.clockIn);
     const clockOut = today;
@@ -532,9 +678,8 @@ const clockOut = async (req, res) => {
     res.status(200).json({
       message: "Clocked out successfully",
       clockOut: today,
-      totalHours: todayAttendance.totalHours
+      totalHours: todayAttendance.totalHours,
     });
-
   } catch (error) {
     console.error("Error clocking out:", error);
     res.status(500).json({ message: "Server error" });
@@ -543,7 +688,9 @@ const clockOut = async (req, res) => {
 
 const getEmployeeLeaves = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.user.id).select("leaveRequests name employeeId");
+    const employee = await Employee.findById(req.user.id).select(
+      "leaveRequests name employeeId"
+    );
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -551,9 +698,8 @@ const getEmployeeLeaves = async (req, res) => {
 
     res.status(200).json({
       message: "Leave requests retrieved successfully",
-      leaves: employee.leaveRequests
+      leaves: employee.leaveRequests,
     });
-
   } catch (error) {
     console.error("Error getting employee leaves:", error);
     res.status(500).json({ message: "Server error" });
@@ -579,8 +725,8 @@ const requestLeave = async (req, res) => {
       endDate: new Date(endDate),
       reason,
       halfDay: halfDay || false,
-      status: 'pending',
-      appliedDate: new Date()
+      status: "pending",
+      appliedDate: new Date(),
     };
 
     employee.leaveRequests.push(leaveRequest);
@@ -588,9 +734,8 @@ const requestLeave = async (req, res) => {
 
     res.status(201).json({
       message: "Leave request submitted successfully",
-      leaveRequest
+      leaveRequest,
     });
-
   } catch (error) {
     console.error("Error requesting leave:", error);
     res.status(500).json({ message: "Server error" });
@@ -599,7 +744,9 @@ const requestLeave = async (req, res) => {
 
 const getEmployeeDocuments = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.user.id).select("documents name employeeId");
+    const employee = await Employee.findById(req.user.id).select(
+      "documents name employeeId"
+    );
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -607,9 +754,8 @@ const getEmployeeDocuments = async (req, res) => {
 
     res.status(200).json({
       message: "Documents retrieved successfully",
-      documents: employee.documents
+      documents: employee.documents,
     });
-
   } catch (error) {
     console.error("Error getting employee documents:", error);
     res.status(500).json({ message: "Server error" });
@@ -634,7 +780,7 @@ const uploadDocument = async (req, res) => {
       type,
       category,
       fileUrl,
-      uploadDate: new Date()
+      uploadDate: new Date(),
     };
 
     employee.documents.push(document);
@@ -642,9 +788,8 @@ const uploadDocument = async (req, res) => {
 
     res.status(201).json({
       message: "Document uploaded successfully",
-      document
+      document,
     });
-
   } catch (error) {
     console.error("Error uploading document:", error);
     res.status(500).json({ message: "Server error" });
@@ -667,5 +812,5 @@ module.exports = {
   getEmployeeLeaves,
   requestLeave,
   getEmployeeDocuments,
-  uploadDocument
+  uploadDocument,
 };

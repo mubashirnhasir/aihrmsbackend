@@ -26,47 +26,64 @@ const employeeSchema = new mongoose.Schema(
     role: String,
     status: { type: String, default: "active" },
     profilePicture: String,
-    
+
     // Authentication fields
     password: String,
     employeeId: { type: String, unique: true },
     isFirstLogin: { type: Boolean, default: true },
     lastLogin: Date,
-      // Leave Management
+    // Leave Management
     casualLeaves: { type: Number, default: 1 },
     sickLeaves: { type: Number, default: 2 },
     earnedLeaves: { type: Number, default: 1 },
     unpaidLeaves: { type: Number, default: 0 },
-    leaveRequests: [{
-      type: { type: String, enum: ['casual', 'sick', 'earned', 'unpaid'] },
-      startDate: Date,
-      endDate: Date,
-      reason: String,
-      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-      appliedOn: { type: Date, default: Date.now },
-      approvedBy: String,
-      comments: String
-    }],
-    
+    leaveRequests: [
+      {
+        type: { type: String, enum: ["casual", "sick", "earned", "unpaid"] },
+        startDate: Date,
+        endDate: Date,
+        reason: String,
+        status: {
+          type: String,
+          enum: ["pending", "approved", "rejected"],
+          default: "pending",
+        },
+        appliedOn: { type: Date, default: Date.now },
+        approvedBy: String,
+        comments: String,
+      },
+    ],
+
     // Attendance fields
-    attendance: [{
-      date: { type: Date, required: true },
-      clockIn: Date,
-      clockOut: Date,
-      totalHours: Number,
-      status: { type: String, enum: ['present', 'absent', 'late', 'half-day'], default: 'present' },
-      location: String
-    }],
-    
+    attendance: [
+      {
+        date: { type: Date, required: true },
+        clockIn: Date,
+        clockOut: Date,
+        totalHours: Number,
+        status: {
+          type: String,
+          enum: ["present", "absent", "late", "half-day"],
+          default: "present",
+        },
+        location: String,
+      },
+    ],
+
     // Document Management
-    documents: [{
-      name: String,
-      type: String,
-      url: String,
-      uploadedOn: { type: Date, default: Date.now },
-      category: { type: String, enum: ['personal', 'professional', 'compliance'] }
-    }],
-    
+    documents: [
+      {
+        name: String,
+        type: String,
+        url: String,
+        uploadedOn: { type: Date, default: Date.now },
+        category: {
+          type: String,
+          enum: ["personal", "professional", "compliance"],
+        },
+      },
+    ],
+
     // Personal Information (extended)
     dateOfBirth: Date,
     address: {
@@ -74,22 +91,25 @@ const employeeSchema = new mongoose.Schema(
       city: String,
       state: String,
       country: String,
-      zipCode: String
+      zipCode: String,
     },
     emergencyContact: {
       name: String,
       relationship: String,
       phone: String,
-      email: String
+      email: String,
     },
-    
+
     // Employment Details
     manager: String,
     team: String,
     workLocation: String,
-    employmentType: { type: String, enum: ['full-time', 'part-time', 'contract', 'intern'] },
+    employmentType: {
+      type: String,
+      enum: ["full-time", "part-time", "contract", "intern"],
+    },
     salary: Number,
-    
+
     assets: Array,
     careerPaths: [CareerPathOption],
     studyPlans: {
@@ -127,6 +147,34 @@ const employeeSchema = new mongoose.Schema(
       default: [],
     },
     roadmaps: [RoadmapSchema],
+
+    // Profile sections for frontend compatibility
+    bankDetails: {
+      bankName: String,
+      accountNumber: String,
+      routingNumber: String,
+      accountType: String,
+      accountHolderName: String,
+      swiftCode: String,
+      iban: String,
+    },
+
+    preferences: {
+      language: { type: String, default: "en" },
+      timezone: String,
+      theme: { type: String, default: "light" },
+      dateFormat: { type: String, default: "MM/dd/yyyy" },
+      timeFormat: { type: String, default: "12h" },
+      notifications: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+        push: { type: Boolean, default: true },
+        leaveRequests: { type: Boolean, default: true },
+        attendance: { type: Boolean, default: true },
+        payroll: { type: Boolean, default: true },
+        announcements: { type: Boolean, default: true },
+      },
+    },
   },
   {
     timestamps: true,
