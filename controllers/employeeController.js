@@ -305,6 +305,352 @@ Rules
   }
 };
 
+// Employee Portal Methods
+const getEmployeeDashboard = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id).select("-password");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Get today's attendance
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    const todayAttendance = employee.attendance.find(
+      att => att.date.toISOString().split('T')[0] === todayString
+    );
+
+    // Calculate leave balance
+    const currentYear = today.getFullYear();
+    const yearlyLeaves = employee.leaveRequests.filter(
+      leave => new Date(leave.startDate).getFullYear() === currentYear && leave.status === 'approved'
+    );
+    const usedLeaves = yearlyLeaves.reduce((total, leave) => {
+      const start = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return total + diffDays;
+    }, 0);
+
+    // Get recent documents (last 5)
+    const recentDocuments = employee.documents
+      .sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate))
+      .slice(0, 5);
+
+    const dashboardData = {
+      employee: {
+        name: employee.name,
+        employeeId: employee.employeeId,
+        designation: employee.designation,
+        department: employee.department,
+        email: employee.email,
+        profilePicture: employee.profilePicture
+      },
+      attendance: {
+        today: todayAttendance,
+        isCheckedIn: todayAttendance?.clockIn && !todayAttendance?.clockOut
+      },
+      leaves: {
+        totalAllowed: 24, // Default annual leave
+        used: usedLeaves,
+        remaining: 24 - usedLeaves,
+        pending: employee.leaveRequests.filter(leave => leave.status === 'pending').length
+      },
+      documents: {
+        recent: recentDocuments,
+        total: employee.documents.length
+      },
+      career: {
+        skills: employee.skills?.length || 0,
+        recommendedSkills: employee.recommendedSkills?.length || 0,
+        studyPlans: employee.studyPlans?.length || 0
+      }
+    };
+
+    res.status(200).json({
+      message: "Dashboard data retrieved successfully",
+      data: dashboardData
+    });
+
+  } catch (error) {
+    console.error("Error getting employee dashboard:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const updateEmployeeProfile = async (req, res) => {
+  try {
+    const {
+      personalInfo,
+      contactInfo,
+      emergencyContact,
+      bankDetails,
+      preferences
+    } = req.body;
+
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Update allowed fields
+    if (personalInfo) {
+      employee.personalInfo = { ...employee.personalInfo, ...personalInfo };
+    }
+    if (contactInfo) {
+      employee.contactInfo = { ...employee.contactInfo, ...contactInfo };
+    }
+    if (emergencyContact) {
+      employee.emergencyContact = { ...employee.emergencyContact, ...emergencyContact };
+    }
+    if (bankDetails) {
+      employee.bankDetails = { ...employee.bankDetails, ...bankDetails };
+    }
+    if (preferences) {
+      employee.preferences = { ...employee.preferences, ...preferences };
+    }
+
+    await employee.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      employee: employee
+    });
+
+  } catch (error) {
+    console.error("Error updating employee profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getEmployeeAttendance = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const employee = await Employee.findById(req.user.id).select("attendance name employeeId");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    let attendanceData = employee.attendance;
+
+    // Filter by month/year if provided
+    if (month && year) {
+      attendanceData = attendanceData.filter(att => {
+        const attDate = new Date(att.date);
+        return attDate.getMonth() === parseInt(month) - 1 && attDate.getFullYear() === parseInt(year);
+      });
+    }
+
+    res.status(200).json({
+      message: "Attendance data retrieved successfully",
+      attendance: attendanceData
+    });
+
+  } catch (error) {
+    console.error("Error getting employee attendance:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const clockIn = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    // Check if already clocked in today
+    const existingAttendance = employee.attendance.find(
+      att => att.date.toISOString().split('T')[0] === todayString
+    );
+
+    if (existingAttendance && existingAttendance.clockIn) {
+      return res.status(400).json({ message: "Already clocked in today" });
+    }
+
+    if (existingAttendance) {
+      existingAttendance.clockIn = today;
+    } else {
+      employee.attendance.push({
+        date: today,
+        clockIn: today,
+        status: 'present'
+      });
+    }
+
+    await employee.save();
+
+    res.status(200).json({
+      message: "Clocked in successfully",
+      clockIn: today
+    });
+
+  } catch (error) {
+    console.error("Error clocking in:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const clockOut = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    const todayAttendance = employee.attendance.find(
+      att => att.date.toISOString().split('T')[0] === todayString
+    );
+
+    if (!todayAttendance || !todayAttendance.clockIn) {
+      return res.status(400).json({ message: "Please clock in first" });
+    }
+
+    if (todayAttendance.clockOut) {
+      return res.status(400).json({ message: "Already clocked out today" });
+    }
+
+    todayAttendance.clockOut = today;
+    
+    // Calculate total hours
+    const clockIn = new Date(todayAttendance.clockIn);
+    const clockOut = today;
+    const totalHours = (clockOut - clockIn) / (1000 * 60 * 60);
+    todayAttendance.totalHours = Math.round(totalHours * 100) / 100;
+
+    await employee.save();
+
+    res.status(200).json({
+      message: "Clocked out successfully",
+      clockOut: today,
+      totalHours: todayAttendance.totalHours
+    });
+
+  } catch (error) {
+    console.error("Error clocking out:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getEmployeeLeaves = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id).select("leaveRequests name employeeId");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Leave requests retrieved successfully",
+      leaves: employee.leaveRequests
+    });
+
+  } catch (error) {
+    console.error("Error getting employee leaves:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const requestLeave = async (req, res) => {
+  try {
+    const { type, startDate, endDate, reason, halfDay } = req.body;
+
+    if (!type || !startDate || !endDate || !reason) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const leaveRequest = {
+      type,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      reason,
+      halfDay: halfDay || false,
+      status: 'pending',
+      appliedDate: new Date()
+    };
+
+    employee.leaveRequests.push(leaveRequest);
+    await employee.save();
+
+    res.status(201).json({
+      message: "Leave request submitted successfully",
+      leaveRequest
+    });
+
+  } catch (error) {
+    console.error("Error requesting leave:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getEmployeeDocuments = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id).select("documents name employeeId");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Documents retrieved successfully",
+      documents: employee.documents
+    });
+
+  } catch (error) {
+    console.error("Error getting employee documents:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const uploadDocument = async (req, res) => {
+  try {
+    const { name, type, category, fileUrl } = req.body;
+
+    if (!name || !type || !category || !fileUrl) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const document = {
+      name,
+      type,
+      category,
+      fileUrl,
+      uploadDate: new Date()
+    };
+
+    employee.documents.push(document);
+    await employee.save();
+
+    res.status(201).json({
+      message: "Document uploaded successfully",
+      document
+    });
+
+  } catch (error) {
+    console.error("Error uploading document:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /* ─────────────────────────── exports ─────────────────────────────────── */
 module.exports = {
   getEmployeeProfile,
@@ -313,4 +659,13 @@ module.exports = {
   saveStudyPlan,
   generateCareerPath,
   generateRoadmap,
+  getEmployeeDashboard,
+  updateEmployeeProfile,
+  getEmployeeAttendance,
+  clockIn,
+  clockOut,
+  getEmployeeLeaves,
+  requestLeave,
+  getEmployeeDocuments,
+  uploadDocument
 };

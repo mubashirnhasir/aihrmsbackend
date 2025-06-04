@@ -1,4 +1,5 @@
 const User = require("../models/employeeSchema");
+const Employee = require("../models/employeeSchema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto")
@@ -175,5 +176,94 @@ const resetPassword = async (req, res) => {
   }
 }
 
+// Employee-specific authentication methods
+const employeeSignin = async (req, res) => {
+  try {
+    const { employeeId, password } = req.body;
 
-module.exports = { login, register, currentUser, verifyOtp, forgotPassword, resetPassword };
+    if (!employeeId || !password) {
+      return res.status(400).json({ message: "Employee ID and password are required" });
+    }
+
+    // Find employee by employeeId or email
+    const employee = await Employee.findOne({
+      $or: [
+        { employeeId: employeeId },
+        { email: employeeId }
+      ]
+    });
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Check if employee has a password set
+    if (!employee.password) {
+      return res.status(400).json({ 
+        message: "Account not activated. Please contact HR to set up your password.",
+        requiresActivation: true
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, employee.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Update last login
+    employee.lastLogin = new Date();
+    await employee.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: employee._id, 
+        employeeId: employee.employeeId,
+        role: 'employee',
+        isFirstLogin: employee.isFirstLogin
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      employee: {
+        id: employee._id,
+        name: employee.name,
+        email: employee.email,
+        employeeId: employee.employeeId,
+        designation: employee.designation,
+        department: employee.department,
+        isFirstLogin: employee.isFirstLogin
+      }
+    });
+
+  } catch (error) {
+    console.error("Employee signin error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const employeeCurrentUser = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id).select("-password");
+    
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Current employee retrieved successfully",
+      employee: employee
+    });
+
+  } catch (error) {
+    console.error("Error getting current employee:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = { login, register, currentUser, verifyOtp, forgotPassword, resetPassword, employeeSignin, employeeCurrentUser };

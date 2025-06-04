@@ -18,18 +18,78 @@ const RoadmapSchema = new mongoose.Schema({
 const employeeSchema = new mongoose.Schema(
   {
     name: String,
-    email: String,
+    email: { type: String, unique: true, required: true },
     phone: String,
     department: String,
     designation: String,
     joiningDate: Date,
     role: String,
-    status: String,
+    status: { type: String, default: "active" },
     profilePicture: String,
-    casualLeaves: Number,
-    sickLeaves: Number,
-    earnedLeaves: Number,
-    unpaidLeaves: Number,
+    
+    // Authentication fields
+    password: String,
+    employeeId: { type: String, unique: true },
+    isFirstLogin: { type: Boolean, default: true },
+    lastLogin: Date,
+      // Leave Management
+    casualLeaves: { type: Number, default: 1 },
+    sickLeaves: { type: Number, default: 2 },
+    earnedLeaves: { type: Number, default: 1 },
+    unpaidLeaves: { type: Number, default: 0 },
+    leaveRequests: [{
+      type: { type: String, enum: ['casual', 'sick', 'earned', 'unpaid'] },
+      startDate: Date,
+      endDate: Date,
+      reason: String,
+      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+      appliedOn: { type: Date, default: Date.now },
+      approvedBy: String,
+      comments: String
+    }],
+    
+    // Attendance fields
+    attendance: [{
+      date: { type: Date, required: true },
+      clockIn: Date,
+      clockOut: Date,
+      totalHours: Number,
+      status: { type: String, enum: ['present', 'absent', 'late', 'half-day'], default: 'present' },
+      location: String
+    }],
+    
+    // Document Management
+    documents: [{
+      name: String,
+      type: String,
+      url: String,
+      uploadedOn: { type: Date, default: Date.now },
+      category: { type: String, enum: ['personal', 'professional', 'compliance'] }
+    }],
+    
+    // Personal Information (extended)
+    dateOfBirth: Date,
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      zipCode: String
+    },
+    emergencyContact: {
+      name: String,
+      relationship: String,
+      phone: String,
+      email: String
+    },
+    
+    // Employment Details
+    manager: String,
+    team: String,
+    workLocation: String,
+    employmentType: { type: String, enum: ['full-time', 'part-time', 'contract', 'intern'] },
+    salary: Number,
+    
     assets: Array,
     careerPaths: [CareerPathOption],
     studyPlans: {
