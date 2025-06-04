@@ -743,16 +743,27 @@ const clockOut = async (req, res) => {
 const getEmployeeLeaves = async (req, res) => {
   try {
     const employee = await Employee.findById(req.user.id).select(
-      "leaveRequests name employeeId"
+      "leaveRequests casualLeaves sickLeaves earnedLeaves unpaidLeaves name employeeId"
     );
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
+    console.log(`📋 Fetching leaves for employee: ${employee.name} (${employee.employeeId})`);
+    console.log(`📋 Leave requests count: ${employee.leaveRequests?.length || 0}`);
+    
+    if (employee.leaveRequests?.length > 0) {
+      console.log('📋 Recent leave requests:', employee.leaveRequests.slice(-2));
+    }
+
     res.status(200).json({
-      message: "Leave requests retrieved successfully",
-      leaves: employee.leaveRequests,
+      message: "Leave data retrieved successfully",
+      casualLeaves: employee.casualLeaves || 1,
+      sickLeaves: employee.sickLeaves || 2,
+      earnedLeaves: employee.earnedLeaves || 1,
+      unpaidLeaves: employee.unpaidLeaves || 0,
+      leaveRequests: employee.leaveRequests || [],
     });
   } catch (error) {
     console.error("Error getting employee leaves:", error);
@@ -762,16 +773,30 @@ const getEmployeeLeaves = async (req, res) => {
 
 const requestLeave = async (req, res) => {
   try {
-    const { type, startDate, endDate, reason, halfDay } = req.body;
+    const { type, startDate, endDate, reason, halfDay, halfDayType, emergencyContact } = req.body;
 
-    if (!type || !startDate || !endDate || !reason) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+    console.log('📝 Leave request received:', { type, startDate, endDate, reason });
+    console.log('📝 User ID from token:', req.user.id);
 
-    const employee = await Employee.findById(req.user.id);
+    // Validate required fields only
+    const errors = [];
+    if (!type) errors.push("Leave type is required");
+    if (!startDate) errors.push("Start date is required");
+    if (!endDate) errors.push("End date is required");
+    if (!reason) errors.push("Reason is required");
+
+    if (errors.length > 0) {
+      console.log('❌ Validation errors:', errors);
+      return res.status(400).json({ 
+        message: errors.join(", "),
+        errors: errors 
+      });
+    }const employee = await Employee.findById(req.user.id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
+
+    console.log(`📝 Creating leave request for employee: ${employee.name} (${employee.employeeId})`);
 
     const leaveRequest = {
       type,
@@ -779,12 +804,18 @@ const requestLeave = async (req, res) => {
       endDate: new Date(endDate),
       reason,
       halfDay: halfDay || false,
+      halfDayType: halfDayType || null,
+      emergencyContact: emergencyContact || null,
       status: "pending",
-      appliedDate: new Date(),
+      appliedOn: new Date(),
     };
+
+    console.log('📝 Leave request data:', leaveRequest);
 
     employee.leaveRequests.push(leaveRequest);
     await employee.save();
+
+    console.log(`✅ Leave request saved. Total requests: ${employee.leaveRequests.length}`);
 
     res.status(201).json({
       message: "Leave request submitted successfully",
