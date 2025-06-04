@@ -17,14 +17,68 @@ const yearsSince = (d) =>
 /* ───────────────────────── handlers ──────────────────────── */
 const getEmployeeProfile = async (req, res) => {
   try {
-    const { name } = req.query;
-    if (!name)
-      return res.status(400).json({ message: "Employee name is required" });
+    const employeeId = req.user?.id;
 
-    const emp = await Employee.findOne({ name });
-    if (!emp) return res.status(404).json({ message: "Employee not found" });
+    if (!employeeId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
 
-    return res.json(emp);
+    const employee = await Employee.findById(employeeId).select("-password");
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Structure the response to match the frontend expectations
+    const profileData = {
+      personalInfo: {
+        firstName: employee.name ? employee.name.split(' ')[0] : '',
+        lastName: employee.name ? employee.name.split(' ').slice(1).join(' ') : '',
+        dateOfBirth: employee.dateOfBirth,
+        gender: employee.gender,
+        maritalStatus: employee.maritalStatus,
+        nationality: employee.nationality,
+        address: employee.address?.street || employee.address || '',
+        city: employee.address?.city || '',
+        state: employee.address?.state || '',
+        zipCode: employee.address?.zipCode || '',
+        country: employee.address?.country || ''
+      },
+      contactInfo: {
+        email: employee.email,
+        phone: employee.phone,
+        alternativePhone: employee.alternativePhone,
+        workEmail: employee.workEmail,
+        linkedinProfile: employee.linkedinProfile,
+        skypeId: employee.skypeId
+      },
+      emergencyContact: employee.emergencyContact || {},
+      bankDetails: employee.bankDetails || {},
+      preferences: employee.preferences || {
+        language: 'en',
+        timezone: '',
+        theme: 'light',
+        dateFormat: 'MM/dd/yyyy',
+        timeFormat: '12h',
+        notifications: {
+          email: true,
+          sms: false,
+          push: true,
+          leaveRequests: true,
+          attendance: true,
+          payroll: true,
+          announcements: true
+        }
+      },
+      // Include other basic info
+      name: employee.name,
+      employeeId: employee.employeeId,
+      designation: employee.designation,
+      department: employee.department,
+      profilePicture: employee.profilePicture,
+      joiningDate: employee.joiningDate
+    };
+
+    return res.json(profileData);
   } catch (err) {
     console.error("getEmployeeProfile →", err);
     return res.status(500).json({ message: err.message });
