@@ -3,10 +3,12 @@ const Employee = require("../models/employeeSchema");
 const createEmployee = async (req, res) => {
   try {
     const data = req.body;
-    const profilePath = req.file ? req.file.path.replace(/\\/g, "/") : "uploads/profile.png";
+    const profilePath = req.file
+      ? req.file.path.replace(/\\/g, "/")
+      : "uploads/profile.png";
     const employee = await Employee.create({
       ...data,
-      profilePicture: profilePath
+      profilePicture: profilePath,
     });
 
     res.status(201).json(employee);
@@ -51,10 +53,32 @@ const deleteEmployee = async (req, res) => {
   res.json({ message: "Employee deleted successfully" });
 };
 
+const getEmployeeByName = async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    if (!name) {
+      return res.status(400).json({ message: "Name parameter is required" });
+    }
+
+    const employee = await Employee.findOne({ name: name });
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.json(employee);
+  } catch (err) {
+    console.error("Error fetching employee by name:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createEmployee,
   getAllEmployees,
   getEmployee,
   updateEmployee,
-  deleteEmployee
+  deleteEmployee,
+  getEmployeeByName,
 };

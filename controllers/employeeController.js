@@ -31,17 +31,19 @@ const getEmployeeProfile = async (req, res) => {
     // Structure the response to match the frontend expectations
     const profileData = {
       personalInfo: {
-        firstName: employee.name ? employee.name.split(' ')[0] : '',
-        lastName: employee.name ? employee.name.split(' ').slice(1).join(' ') : '',
+        firstName: employee.name ? employee.name.split(" ")[0] : "",
+        lastName: employee.name
+          ? employee.name.split(" ").slice(1).join(" ")
+          : "",
         dateOfBirth: employee.dateOfBirth,
         gender: employee.gender,
         maritalStatus: employee.maritalStatus,
         nationality: employee.nationality,
-        address: employee.address?.street || employee.address || '',
-        city: employee.address?.city || '',
-        state: employee.address?.state || '',
-        zipCode: employee.address?.zipCode || '',
-        country: employee.address?.country || ''
+        address: employee.address?.street || employee.address || "",
+        city: employee.address?.city || "",
+        state: employee.address?.state || "",
+        zipCode: employee.address?.zipCode || "",
+        country: employee.address?.country || "",
       },
       contactInfo: {
         email: employee.email,
@@ -49,16 +51,16 @@ const getEmployeeProfile = async (req, res) => {
         alternativePhone: employee.alternativePhone,
         workEmail: employee.workEmail,
         linkedinProfile: employee.linkedinProfile,
-        skypeId: employee.skypeId
+        skypeId: employee.skypeId,
       },
       emergencyContact: employee.emergencyContact || {},
       bankDetails: employee.bankDetails || {},
       preferences: employee.preferences || {
-        language: 'en',
-        timezone: '',
-        theme: 'light',
-        dateFormat: 'MM/dd/yyyy',
-        timeFormat: '12h',
+        language: "en",
+        timezone: "",
+        theme: "light",
+        dateFormat: "MM/dd/yyyy",
+        timeFormat: "12h",
         notifications: {
           email: true,
           sms: false,
@@ -66,8 +68,8 @@ const getEmployeeProfile = async (req, res) => {
           leaveRequests: true,
           attendance: true,
           payroll: true,
-          announcements: true
-        }
+          announcements: true,
+        },
       },
       // Include other basic info
       name: employee.name,
@@ -75,7 +77,7 @@ const getEmployeeProfile = async (req, res) => {
       designation: employee.designation,
       department: employee.department,
       profilePicture: employee.profilePicture,
-      joiningDate: employee.joiningDate
+      joiningDate: employee.joiningDate,
     };
 
     return res.json(profileData);
@@ -571,15 +573,18 @@ const updateEmployeeProfile = async (req, res) => {
     if (updateData.bankDetails) {
       // Since bank details aren't in the current schema, we'll store them as a custom field
       updateFields.bankDetails = updateData.bankDetails;
-    }    // Handle preferences section (store as custom field since it's not in the schema)
+    } // Handle preferences section (store as custom field since it's not in the schema)
     if (updateData.preferences) {
       updateFields.preferences = updateData.preferences;
     }
 
     // If this is an onboarding completion (multiple sections provided), mark as not first login
-    const isOnboardingCompletion = providedSections.length >= 3 || 
-      (updateData.personalInfo && updateData.emergencyContact && updateData.bankDetails);
-    
+    const isOnboardingCompletion =
+      providedSections.length >= 3 ||
+      (updateData.personalInfo &&
+        updateData.emergencyContact &&
+        updateData.bankDetails);
+
     if (isOnboardingCompletion && employee.isFirstLogin) {
       updateFields.isFirstLogin = false;
     }
@@ -750,11 +755,18 @@ const getEmployeeLeaves = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    console.log(`📋 Fetching leaves for employee: ${employee.name} (${employee.employeeId})`);
-    console.log(`📋 Leave requests count: ${employee.leaveRequests?.length || 0}`);
-    
+    console.log(
+      `📋 Fetching leaves for employee: ${employee.name} (${employee.employeeId})`
+    );
+    console.log(
+      `📋 Leave requests count: ${employee.leaveRequests?.length || 0}`
+    );
+
     if (employee.leaveRequests?.length > 0) {
-      console.log('📋 Recent leave requests:', employee.leaveRequests.slice(-2));
+      console.log(
+        "📋 Recent leave requests:",
+        employee.leaveRequests.slice(-2)
+      );
     }
 
     res.status(200).json({
@@ -773,10 +785,23 @@ const getEmployeeLeaves = async (req, res) => {
 
 const requestLeave = async (req, res) => {
   try {
-    const { type, startDate, endDate, reason, halfDay, halfDayType, emergencyContact } = req.body;
+    const {
+      type,
+      startDate,
+      endDate,
+      reason,
+      halfDay,
+      halfDayType,
+      emergencyContact,
+    } = req.body;
 
-    console.log('📝 Leave request received:', { type, startDate, endDate, reason });
-    console.log('📝 User ID from token:', req.user.id);
+    console.log("📝 Leave request received:", {
+      type,
+      startDate,
+      endDate,
+      reason,
+    });
+    console.log("📝 User ID from token:", req.user.id);
 
     // Validate required fields only
     const errors = [];
@@ -786,17 +811,20 @@ const requestLeave = async (req, res) => {
     if (!reason) errors.push("Reason is required");
 
     if (errors.length > 0) {
-      console.log('❌ Validation errors:', errors);
-      return res.status(400).json({ 
+      console.log("❌ Validation errors:", errors);
+      return res.status(400).json({
         message: errors.join(", "),
-        errors: errors 
+        errors: errors,
       });
-    }const employee = await Employee.findById(req.user.id);
+    }
+    const employee = await Employee.findById(req.user.id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    console.log(`📝 Creating leave request for employee: ${employee.name} (${employee.employeeId})`);
+    console.log(
+      `📝 Creating leave request for employee: ${employee.name} (${employee.employeeId})`
+    );
 
     const leaveRequest = {
       type,
@@ -810,12 +838,14 @@ const requestLeave = async (req, res) => {
       appliedOn: new Date(),
     };
 
-    console.log('📝 Leave request data:', leaveRequest);
+    console.log("📝 Leave request data:", leaveRequest);
 
     employee.leaveRequests.push(leaveRequest);
     await employee.save();
 
-    console.log(`✅ Leave request saved. Total requests: ${employee.leaveRequests.length}`);
+    console.log(
+      `✅ Leave request saved. Total requests: ${employee.leaveRequests.length}`
+    );
 
     res.status(201).json({
       message: "Leave request submitted successfully",
