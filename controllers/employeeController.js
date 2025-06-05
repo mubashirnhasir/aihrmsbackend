@@ -867,9 +867,110 @@ const getEmployeeDocuments = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
+    // For demonstration purposes, return dummy documents if the employee has no documents
+    let documents = employee.documents || [];
+    
+    // If no documents exist, provide dummy data for demonstration
+    if (documents.length === 0) {
+      documents = [
+        {
+          _id: "dummy_1",
+          filename: "Offer_Letter_2024.pdf",
+          name: "Offer Letter 2024",
+          category: "contracts",
+          fileType: "application/pdf",
+          fileSize: 245760,
+          url: "/dummy/offer-letter-2024.pdf",
+          uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+          description: "Official job offer letter containing terms and conditions of employment"
+        },
+        {
+          _id: "dummy_2", 
+          filename: "Payslip_December_2024.pdf",
+          name: "December 2024 Payslip",
+          category: "payroll",
+          fileType: "application/pdf",
+          fileSize: 156432,
+          url: "/dummy/payslip-dec-2024.pdf",
+          uploadedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+          description: "Monthly salary slip for December 2024"
+        },
+        {
+          _id: "dummy_3",
+          filename: "Employee_Handbook_2024.pdf", 
+          name: "Employee Handbook",
+          category: "training",
+          fileType: "application/pdf",
+          fileSize: 2048000,
+          url: "/dummy/employee-handbook-2024.pdf",
+          uploadedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
+          description: "Complete guide to company policies, procedures, and benefits"
+        },
+        {
+          _id: "dummy_4",
+          filename: "Resume_John_Doe.pdf",
+          name: "My Resume",
+          category: "personal", 
+          fileType: "application/pdf",
+          fileSize: 389120,
+          url: "/dummy/resume-john-doe.pdf",
+          uploadedAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000), // 120 days ago
+          description: "Professional resume with work experience and qualifications"
+        },
+        {
+          _id: "dummy_5",
+          filename: "Tax_Certificate_2024.pdf",
+          name: "2024 Tax Certificate", 
+          category: "certificates",
+          fileType: "application/pdf",
+          fileSize: 198540,
+          url: "/dummy/tax-certificate-2024.pdf",
+          uploadedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+          description: "Annual tax deduction certificate for financial year 2024"
+        },
+        {
+          _id: "dummy_6",
+          filename: "ID_Card_Copy.jpg",
+          name: "Employee ID Card",
+          category: "personal",
+          fileType: "image/jpeg", 
+          fileSize: 756890,
+          url: "/dummy/id-card-copy.jpg",
+          uploadedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), // 180 days ago
+          description: "Copy of official employee identification card"
+        },
+        {
+          _id: "dummy_7",
+          filename: "Training_Certificate_Leadership.pdf",
+          name: "Leadership Training Certificate",
+          category: "training",
+          fileType: "application/pdf",
+          fileSize: 445632,
+          url: "/dummy/leadership-cert.pdf", 
+          uploadedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
+          description: "Certificate of completion for leadership development program"
+        },
+        {
+          _id: "dummy_8",
+          filename: "Performance_Review_2024.pdf",
+          name: "Annual Performance Review 2024",
+          category: "professional",
+          fileType: "application/pdf",
+          fileSize: 523984,
+          url: "/dummy/performance-review-2024.pdf",
+          uploadedAt: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000), // 75 days ago
+          description: "Annual performance evaluation and goal setting document"
+        }
+      ];
+    }
+
+    // Get unique categories
+    const categories = [...new Set(documents.map(doc => doc.category))];
+
     res.status(200).json({
       message: "Documents retrieved successfully",
-      documents: employee.documents,
+      documents: documents,
+      categories: categories
     });
   } catch (error) {
     console.error("Error getting employee documents:", error);
@@ -879,34 +980,118 @@ const getEmployeeDocuments = async (req, res) => {
 
 const uploadDocument = async (req, res) => {
   try {
-    const { name, type, category, fileUrl } = req.body;
-
-    if (!name || !type || !category || !fileUrl) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
+    // For demonstration purposes, we'll simulate file upload
+    // In a real implementation, you'd use multer or similar middleware
+    const { body } = req;
+    
     const employee = await Employee.findById(req.user.id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
+    // Simulate file upload - in reality this would be handled by multer
+    const fileName = `uploaded_document_${Date.now()}.pdf`;
+    const fileSize = Math.floor(Math.random() * 1000000) + 100000;
+    const category = body.category || 'general';
+    
     const document = {
-      name,
-      type,
-      category,
-      fileUrl,
-      uploadDate: new Date(),
+      _id: new Date().getTime().toString(), // Generate simple ID
+      filename: fileName,
+      name: fileName.split('.')[0].replace(/_/g, ' '),
+      category: category,
+      fileType: 'application/pdf',
+      fileSize: fileSize,
+      url: `/uploads/${fileName}`,
+      uploadedAt: new Date(),
+      description: `User uploaded ${fileName}`,
+      status: 'pending'
     };
 
-    employee.documents.push(document);
-    await employee.save();
+    // Initialize documents array if it doesn't exist
+    if (!employee.documents) {
+      employee.documents = [];
+    }
 
-    res.status(201).json({
+    employee.documents.push(document);
+    await employee.save();    res.status(201).json({
       message: "Document uploaded successfully",
       document,
     });
   } catch (error) {
     console.error("Error uploading document:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const downloadDocument = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const employee = await Employee.findById(req.user.id).select("documents name employeeId");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // For dummy documents, create a simple PDF content
+    const dummyDocuments = {
+      "dummy_1": {
+        filename: "Offer_Letter_2024.pdf",
+        content: Buffer.from("This is a dummy offer letter document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_2": {
+        filename: "Payslip_December_2024.pdf", 
+        content: Buffer.from("This is a dummy payslip document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_3": {
+        filename: "Employee_Handbook_2024.pdf",
+        content: Buffer.from("This is a dummy employee handbook document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_4": {
+        filename: "Resume_John_Doe.pdf",
+        content: Buffer.from("This is a dummy resume document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_5": {
+        filename: "Tax_Certificate_2024.pdf",
+        content: Buffer.from("This is a dummy tax certificate document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_6": {
+        filename: "ID_Card_Copy.jpg",
+        content: Buffer.from("This is a dummy image file for demonstration purposes."),
+        mimeType: "image/jpeg"
+      },
+      "dummy_7": {
+        filename: "Training_Certificate_Leadership.pdf",
+        content: Buffer.from("This is a dummy training certificate document for demonstration purposes."),
+        mimeType: "application/pdf"
+      },
+      "dummy_8": {
+        filename: "Performance_Review_2024.pdf",
+        content: Buffer.from("This is a dummy performance review document for demonstration purposes."),
+        mimeType: "application/pdf"
+      }
+    };
+
+    const document = dummyDocuments[documentId];
+    
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Set appropriate headers for file download
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${document.filename}"`);
+    res.setHeader('Content-Length', document.content.length);
+
+    // Send the file content
+    res.send(document.content);
+
+  } catch (error) {
+    console.error("Error downloading document:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -928,4 +1113,5 @@ module.exports = {
   requestLeave,
   getEmployeeDocuments,
   uploadDocument,
+  downloadDocument,
 };
