@@ -7,6 +7,10 @@ const employeeRoutes = require("./routes/employeeRoutes");
 const userRoutes = require("./routes/userRoutes");
 const assetRoutes = require("./routes/assetRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
+const holidaysRoutes = require("./routes/holidaysRoutes");
+const employeeRetentionRoutes = require("./routes/employeeRetentionRoutes");
+const aiScreeningRoutes = require("./routes/aiScreeningRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -27,10 +31,14 @@ connectDb();
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", userRoutes); 
 app.use("/api/assets", assetRoutes);
-
-// Static files
 app.use("/api/employee", employeeRoutes);
 app.use("/api/leaves", leaveRoutes);
+app.use("/api/holidays", holidaysRoutes);
+app.use("/api/employee-retention", employeeRetentionRoutes);
+app.use("/api/ai-screening", aiScreeningRoutes);
+app.use("/api/chat", chatRoutes);
+
+// Static files
 app.use("/uploads", express.static("uploads"));
 
 //start the server
