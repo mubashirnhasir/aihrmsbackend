@@ -18,8 +18,13 @@ const createEmployee = async (req, res) => {
 };
 
 const getAllEmployees = async (req, res) => {
-  const employees = await Employee.find();
-  res.json(employees);
+  try {
+    const employees = await Employee.find();
+    res.json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Error fetching employees", error: error.message });
+  }
 };
 
 const getEmployee = async (req, res) => {
@@ -70,7 +75,16 @@ const getEmployeeByName = async (req, res) => {
     res.json(employee);
   } catch (err) {
     console.error("Error fetching employee by name:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });  }
+};
+
+const getEmployeeCount = async (req, res) => {
+  try {
+    const count = await Employee.countDocuments();
+    res.json({ count, success: true });
+  } catch (error) {
+    console.error("Error fetching employee count:", error);
+    res.status(500).json({ message: "Error fetching employee count", error: error.message });
   }
 };
 
@@ -81,4 +95,5 @@ module.exports = {
   updateEmployee,
   deleteEmployee,
   getEmployeeByName,
+  getEmployeeCount,
 };
