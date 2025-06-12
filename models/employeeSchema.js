@@ -85,20 +85,48 @@ const employeeSchema = new mongoose.Schema(
     ],
 
     // Personal Information (extended)
+    firstName: String,
+    lastName: String,
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+    },
+    nationality: String,
     dateOfBirth: Date,
+
+    // Address Information
     address: {
+      presentAddress: String,
       street: String,
       city: String,
       state: String,
       country: String,
       zipCode: String,
+      postalCode: String,
     },
-    emergencyContact: {
-      name: String,
-      relationship: String,
-      phone: String,
-      email: String,
-    },
+
+    // Previous Employment History
+    previousEmployment: [
+      {
+        companyName: String,
+        designation: String,
+        fromDate: Date,
+        toDate: Date,
+        companyAddress: String,
+      },
+    ],
+
+    // Family Details
+    familyDetails: [
+      {
+        name: String,
+        relationship: String,
+        gender: String,
+        bloodGroup: String,
+        nationality: String,
+        isMinor: { type: Boolean, default: false },
+      },
+    ],
 
     // Employment Details
     manager: String,
@@ -146,18 +174,36 @@ const employeeSchema = new mongoose.Schema(
       type: [{ name: String }],
       default: [],
     },
-    roadmaps: [RoadmapSchema],
-
-    // Profile sections for frontend compatibility
+    roadmaps: [RoadmapSchema], // Profile sections for frontend compatibility
     bankDetails: {
       bankName: String,
       accountNumber: String,
+      bankAccountNumber: String,
+      confirmBankAccountNumber: String,
       routingNumber: String,
       accountType: String,
       accountHolderName: String,
+      nameAsPerBankAccount: String,
       swiftCode: String,
       iban: String,
-    },
+      bankCode: String,
+      ifscCode: String,
+      panNumber: String,
+      aadharNumber: String,
+      pfNumber: String,
+      esiNumber: String,
+      country: { type: String, default: "India" },
+    }, // Onboarding fields
+    onboardingCompleted: { type: Boolean, default: false },
+    onboardingCompletedDate: Date,
+    documentAttachments: [
+      {
+        fileName: String,
+        fileUrl: String,
+        fileType: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
 
     preferences: {
       language: { type: String, default: "en" },

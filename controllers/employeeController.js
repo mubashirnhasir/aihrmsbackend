@@ -869,7 +869,7 @@ const getEmployeeDocuments = async (req, res) => {
 
     // For demonstration purposes, return dummy documents if the employee has no documents
     let documents = employee.documents || [];
-    
+
     // If no documents exist, provide dummy data for demonstration
     if (documents.length === 0) {
       documents = [
@@ -882,10 +882,11 @@ const getEmployeeDocuments = async (req, res) => {
           fileSize: 245760,
           url: "/dummy/offer-letter-2024.pdf",
           uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-          description: "Official job offer letter containing terms and conditions of employment"
+          description:
+            "Official job offer letter containing terms and conditions of employment",
         },
         {
-          _id: "dummy_2", 
+          _id: "dummy_2",
           filename: "Payslip_December_2024.pdf",
           name: "December 2024 Payslip",
           category: "payroll",
@@ -893,51 +894,54 @@ const getEmployeeDocuments = async (req, res) => {
           fileSize: 156432,
           url: "/dummy/payslip-dec-2024.pdf",
           uploadedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-          description: "Monthly salary slip for December 2024"
+          description: "Monthly salary slip for December 2024",
         },
         {
           _id: "dummy_3",
-          filename: "Employee_Handbook_2024.pdf", 
+          filename: "Employee_Handbook_2024.pdf",
           name: "Employee Handbook",
           category: "training",
           fileType: "application/pdf",
           fileSize: 2048000,
           url: "/dummy/employee-handbook-2024.pdf",
           uploadedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days ago
-          description: "Complete guide to company policies, procedures, and benefits"
+          description:
+            "Complete guide to company policies, procedures, and benefits",
         },
         {
           _id: "dummy_4",
           filename: "Resume_John_Doe.pdf",
           name: "My Resume",
-          category: "personal", 
+          category: "personal",
           fileType: "application/pdf",
           fileSize: 389120,
           url: "/dummy/resume-john-doe.pdf",
           uploadedAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000), // 120 days ago
-          description: "Professional resume with work experience and qualifications"
+          description:
+            "Professional resume with work experience and qualifications",
         },
         {
           _id: "dummy_5",
           filename: "Tax_Certificate_2024.pdf",
-          name: "2024 Tax Certificate", 
+          name: "2024 Tax Certificate",
           category: "certificates",
           fileType: "application/pdf",
           fileSize: 198540,
           url: "/dummy/tax-certificate-2024.pdf",
           uploadedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
-          description: "Annual tax deduction certificate for financial year 2024"
+          description:
+            "Annual tax deduction certificate for financial year 2024",
         },
         {
           _id: "dummy_6",
           filename: "ID_Card_Copy.jpg",
           name: "Employee ID Card",
           category: "personal",
-          fileType: "image/jpeg", 
+          fileType: "image/jpeg",
           fileSize: 756890,
           url: "/dummy/id-card-copy.jpg",
           uploadedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), // 180 days ago
-          description: "Copy of official employee identification card"
+          description: "Copy of official employee identification card",
         },
         {
           _id: "dummy_7",
@@ -946,9 +950,10 @@ const getEmployeeDocuments = async (req, res) => {
           category: "training",
           fileType: "application/pdf",
           fileSize: 445632,
-          url: "/dummy/leadership-cert.pdf", 
+          url: "/dummy/leadership-cert.pdf",
           uploadedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
-          description: "Certificate of completion for leadership development program"
+          description:
+            "Certificate of completion for leadership development program",
         },
         {
           _id: "dummy_8",
@@ -959,18 +964,19 @@ const getEmployeeDocuments = async (req, res) => {
           fileSize: 523984,
           url: "/dummy/performance-review-2024.pdf",
           uploadedAt: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000), // 75 days ago
-          description: "Annual performance evaluation and goal setting document"
-        }
+          description:
+            "Annual performance evaluation and goal setting document",
+        },
       ];
     }
 
     // Get unique categories
-    const categories = [...new Set(documents.map(doc => doc.category))];
+    const categories = [...new Set(documents.map((doc) => doc.category))];
 
     res.status(200).json({
       message: "Documents retrieved successfully",
       documents: documents,
-      categories: categories
+      categories: categories,
     });
   } catch (error) {
     console.error("Error getting employee documents:", error);
@@ -983,7 +989,7 @@ const uploadDocument = async (req, res) => {
     // For demonstration purposes, we'll simulate file upload
     // In a real implementation, you'd use multer or similar middleware
     const { body } = req;
-    
+
     const employee = await Employee.findById(req.user.id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -992,19 +998,19 @@ const uploadDocument = async (req, res) => {
     // Simulate file upload - in reality this would be handled by multer
     const fileName = `uploaded_document_${Date.now()}.pdf`;
     const fileSize = Math.floor(Math.random() * 1000000) + 100000;
-    const category = body.category || 'general';
-    
+    const category = body.category || "general";
+
     const document = {
       _id: new Date().getTime().toString(), // Generate simple ID
       filename: fileName,
-      name: fileName.split('.')[0].replace(/_/g, ' '),
+      name: fileName.split(".")[0].replace(/_/g, " "),
       category: category,
-      fileType: 'application/pdf',
+      fileType: "application/pdf",
       fileSize: fileSize,
       url: `/uploads/${fileName}`,
       uploadedAt: new Date(),
       description: `User uploaded ${fileName}`,
-      status: 'pending'
+      status: "pending",
     };
 
     // Initialize documents array if it doesn't exist
@@ -1013,7 +1019,8 @@ const uploadDocument = async (req, res) => {
     }
 
     employee.documents.push(document);
-    await employee.save();    res.status(201).json({
+    await employee.save();
+    res.status(201).json({
       message: "Document uploaded successfully",
       document,
     });
@@ -1026,7 +1033,9 @@ const uploadDocument = async (req, res) => {
 const downloadDocument = async (req, res) => {
   try {
     const { documentId } = req.params;
-    const employee = await Employee.findById(req.user.id).select("documents name employeeId");
+    const employee = await Employee.findById(req.user.id).select(
+      "documents name employeeId"
+    );
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -1034,65 +1043,237 @@ const downloadDocument = async (req, res) => {
 
     // For dummy documents, create a simple PDF content
     const dummyDocuments = {
-      "dummy_1": {
+      dummy_1: {
         filename: "Offer_Letter_2024.pdf",
-        content: Buffer.from("This is a dummy offer letter document for demonstration purposes."),
-        mimeType: "application/pdf"
+        content: Buffer.from(
+          "This is a dummy offer letter document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_2": {
-        filename: "Payslip_December_2024.pdf", 
-        content: Buffer.from("This is a dummy payslip document for demonstration purposes."),
-        mimeType: "application/pdf"
+      dummy_2: {
+        filename: "Payslip_December_2024.pdf",
+        content: Buffer.from(
+          "This is a dummy payslip document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_3": {
+      dummy_3: {
         filename: "Employee_Handbook_2024.pdf",
-        content: Buffer.from("This is a dummy employee handbook document for demonstration purposes."),
-        mimeType: "application/pdf"
+        content: Buffer.from(
+          "This is a dummy employee handbook document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_4": {
+      dummy_4: {
         filename: "Resume_John_Doe.pdf",
-        content: Buffer.from("This is a dummy resume document for demonstration purposes."),
-        mimeType: "application/pdf"
+        content: Buffer.from(
+          "This is a dummy resume document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_5": {
+      dummy_5: {
         filename: "Tax_Certificate_2024.pdf",
-        content: Buffer.from("This is a dummy tax certificate document for demonstration purposes."),
-        mimeType: "application/pdf"
+        content: Buffer.from(
+          "This is a dummy tax certificate document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_6": {
+      dummy_6: {
         filename: "ID_Card_Copy.jpg",
-        content: Buffer.from("This is a dummy image file for demonstration purposes."),
-        mimeType: "image/jpeg"
+        content: Buffer.from(
+          "This is a dummy image file for demonstration purposes."
+        ),
+        mimeType: "image/jpeg",
       },
-      "dummy_7": {
+      dummy_7: {
         filename: "Training_Certificate_Leadership.pdf",
-        content: Buffer.from("This is a dummy training certificate document for demonstration purposes."),
-        mimeType: "application/pdf"
+        content: Buffer.from(
+          "This is a dummy training certificate document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
       },
-      "dummy_8": {
+      dummy_8: {
         filename: "Performance_Review_2024.pdf",
-        content: Buffer.from("This is a dummy performance review document for demonstration purposes."),
-        mimeType: "application/pdf"
-      }
+        content: Buffer.from(
+          "This is a dummy performance review document for demonstration purposes."
+        ),
+        mimeType: "application/pdf",
+      },
     };
 
     const document = dummyDocuments[documentId];
-    
+
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
 
     // Set appropriate headers for file download
-    res.setHeader('Content-Type', document.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${document.filename}"`);
-    res.setHeader('Content-Length', document.content.length);
+    res.setHeader("Content-Type", document.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${document.filename}"`
+    );
+    res.setHeader("Content-Length", document.content.length);
 
     // Send the file content
     res.send(document.content);
-
   } catch (error) {
     console.error("Error downloading document:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ─────────────────────────── onboarding functions ───────────────────────── */
+const createEmployeeOnboarding = async (req, res) => {
+  try {
+    // Temporarily use a test employee ID for testing
+    const employeeId = req.user?.id || "673d6bbc8b21b1c02b0797f0";
+
+    console.log("🎯 Onboarding request received for employee:", employeeId);
+
+    // For testing - if no user auth, create a test employee first
+    if (!req.user?.id) {
+      console.log("🧪 Test mode - creating test employee if not exists");
+      let testEmployee = await Employee.findById(employeeId);
+      if (!testEmployee) {
+        testEmployee = new Employee({
+          _id: employeeId,
+          name: "Test Employee",
+          email: "test@example.com",
+          employeeId: "EMP001",
+          password: "hashed_password",
+        });
+        await testEmployee.save();
+        console.log("✅ Test employee created");
+      }
+    }
+
+    const {
+      personalInfo,
+      address,
+      previousEmployment,
+      bankDetails,
+      familyDetails,
+      documentAttachments,
+    } = req.body;
+
+    // Validate required fields
+    if (
+      !personalInfo ||
+      !personalInfo.firstName ||
+      !personalInfo.lastName ||
+      !personalInfo.email
+    ) {
+      return res.status(400).json({
+        message:
+          "Required personal information missing (firstName, lastName, email)",
+      });
+    }
+
+    // Find the employee
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Update employee with onboarding data
+    const updateData = {
+      // Personal Info
+      name: `${personalInfo.firstName} ${personalInfo.lastName}`,
+      firstName: personalInfo.firstName,
+      lastName: personalInfo.lastName,
+      email: personalInfo.email,
+      phone: personalInfo.phone,
+      dateOfBirth: personalInfo.dateOfBirth,
+      gender: personalInfo.gender,
+      nationality: personalInfo.nationality,
+
+      // Address
+      address: {
+        street: address?.presentAddress || "",
+        city: address?.city || "",
+        state: address?.state || "",
+        zipCode: address?.postalCode || "",
+        country: address?.country || "",
+      },
+
+      // Previous Employment
+      previousEmployment: previousEmployment || [],
+
+      // Bank Details
+      bankDetails: {
+        accountNumber: bankDetails?.accountNumber || "",
+        bankName: bankDetails?.bankName || "",
+        ifscCode: bankDetails?.ifscCode || "",
+        panNumber: bankDetails?.panNumber || "",
+        aadharNumber: bankDetails?.aadharNumber || "",
+        pfNumber: bankDetails?.pfNumber || "",
+        esiNumber: bankDetails?.esiNumber || "",
+      },
+
+      // Family Details
+      familyDetails: familyDetails || [],
+
+      // Document Attachments
+      documentAttachments: documentAttachments || [],
+
+      // Mark onboarding as completed
+      onboardingCompleted: true,
+      onboardingCompletedDate: new Date(),
+    };
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      message: "Onboarding completed successfully",
+      employee: {
+        id: updatedEmployee._id,
+        name: updatedEmployee.name,
+        email: updatedEmployee.email,
+        onboardingCompleted: updatedEmployee.onboardingCompleted,
+      },
+    });
+  } catch (error) {
+    console.error("Error in createEmployeeOnboarding:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+const getEmployeeOnboardingStatus = async (req, res) => {
+  try {
+    const employeeId = req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const employee = await Employee.findById(employeeId).select(
+      "onboardingCompleted onboardingCompletedDate name email"
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      onboardingCompleted: employee.onboardingCompleted || false,
+      onboardingCompletedDate: employee.onboardingCompletedDate,
+      employeeName: employee.name,
+      employeeEmail: employee.email,
+    });
+  } catch (error) {
+    console.error("Error in getEmployeeOnboardingStatus:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -1114,4 +1295,6 @@ module.exports = {
   getEmployeeDocuments,
   uploadDocument,
   downloadDocument,
+  createEmployeeOnboarding,
+  getEmployeeOnboardingStatus,
 };

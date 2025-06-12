@@ -17,6 +17,8 @@ const {
   getEmployeeDocuments,
   uploadDocument,
   downloadDocument,
+  createEmployeeOnboarding,
+  getEmployeeOnboardingStatus,
 } = require("../controllers/employeeController");
 const currentUserToken = require("../middlewares/currentUserMiddleware");
 const verifyToken = require("../middlewares/authMiddleware");
@@ -40,7 +42,11 @@ employeeRouter.post("/leaves/request", verifyToken, requestLeave);
 // Document routes
 employeeRouter.get("/documents", verifyToken, getEmployeeDocuments);
 employeeRouter.post("/documents/upload", verifyToken, uploadDocument);
-employeeRouter.get("/documents/:documentId/download", verifyToken, downloadDocument);
+employeeRouter.get(
+  "/documents/:documentId/download",
+  verifyToken,
+  downloadDocument
+);
 
 // Career development routes
 employeeRouter.post("/updateRecommended", updateRecommendedSkills);
@@ -48,5 +54,13 @@ employeeRouter.post("/study-plan/complete-module", markModuleComplete);
 employeeRouter.post("/study-plan/save", saveStudyPlan);
 employeeRouter.post("/career-path", generateCareerPath);
 employeeRouter.post("/roadmap", generateRoadmap);
+
+// Onboarding routes
+employeeRouter.post("/onboarding", verifyToken, createEmployeeOnboarding);
+employeeRouter.get(
+  "/onboarding-status",
+  verifyToken,
+  getEmployeeOnboardingStatus
+);
 
 module.exports = employeeRouter;

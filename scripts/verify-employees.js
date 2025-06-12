@@ -16,21 +16,24 @@ const connectDb = async () => {
 const verifyEmployees = async () => {
   try {
     const employees = await Employee.find({
-      employeeId: { $in: ["EMP002", "EMP003"] }
+      employeeId: { $in: ["EMP002", "EMP003"] },
     }).select("name email employeeId department designation isFirstLogin");
 
     console.log("\n📋 Verified Employee Data:");
     console.log("==========================");
-    
-    employees.forEach(emp => {
+
+    employees.forEach((emp) => {
       console.log(`\n👤 ${emp.name}`);
       console.log(`   ID: ${emp.employeeId}`);
       console.log(`   Email: ${emp.email}`);
       console.log(`   Department: ${emp.department}`);
       console.log(`   Designation: ${emp.designation}`);
-      console.log(`   First Login: ${emp.isFirstLogin ? 'Yes (Ready for onboarding)' : 'No'}`);
+      console.log(
+        `   First Login: ${
+          emp.isFirstLogin ? "Yes (Ready for onboarding)" : "No"
+        }`
+      );
     });
-
   } catch (error) {
     console.error("❌ Error verifying employees:", error);
   }

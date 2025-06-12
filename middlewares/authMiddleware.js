@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const verifyToken = (req, res, next) => {
   let token;
   let authHeader = req.headers.Authorization || req.headers.authorization;
+
   if (authHeader && authHeader.startsWith("Bearer")) {
     token = authHeader.split(" ")[1];
 
@@ -16,9 +17,10 @@ const verifyToken = (req, res, next) => {
     try {
       const decode = jwt.verify(token, process.env.JWT_SECRET);
       req.user = decode;
-      console.log("The decode user is ", req.user);
+      console.log("✅ Token verified for user:", req.user.id);
       next();
     } catch (error) {
+      console.error("❌ Token verification failed:", error.message);
       res.status(401).json({ message: "Invalid Token" });
     }
   } else {

@@ -32,7 +32,7 @@ const createSampleEmployees = async () => {
         employeeId: "EMP002",
         password: hashedPassword,
         isFirstLogin: true,
-        
+
         // Leave balances
         casualLeaves: 12,
         sickLeaves: 8,
@@ -46,13 +46,13 @@ const createSampleEmployees = async () => {
           city: "San Francisco",
           state: "California",
           country: "USA",
-          zipCode: "94102"
+          zipCode: "94102",
         },
         emergencyContact: {
           name: "Michael Johnson",
           relationship: "Spouse",
           phone: "+1-555-0103",
-          email: "michael.johnson@email.com"
+          email: "michael.johnson@email.com",
         },
 
         // Employment Details
@@ -64,9 +64,13 @@ const createSampleEmployees = async () => {
 
         // Skills
         skills: [
-          { name: "Digital Marketing", level: "Intermediate", category: "Marketing" },
+          {
+            name: "Digital Marketing",
+            level: "Intermediate",
+            category: "Marketing",
+          },
           { name: "Content Creation", level: "Advanced", category: "Creative" },
-          { name: "Analytics", level: "Beginner", category: "Data" }
+          { name: "Analytics", level: "Beginner", category: "Data" },
         ],
 
         // Bank Details
@@ -75,7 +79,7 @@ const createSampleEmployees = async () => {
           accountNumber: "****6789",
           routingNumber: "021000021",
           accountType: "Checking",
-          accountHolderName: "Sarah Johnson"
+          accountHolderName: "Sarah Johnson",
         },
 
         // Preferences
@@ -92,9 +96,9 @@ const createSampleEmployees = async () => {
             leaveRequests: true,
             attendance: true,
             payroll: true,
-            announcements: true
-          }
-        }
+            announcements: true,
+          },
+        },
       },
       {
         name: "David Chen",
@@ -108,7 +112,7 @@ const createSampleEmployees = async () => {
         employeeId: "EMP003",
         password: hashedPassword,
         isFirstLogin: true,
-        
+
         // Leave balances
         casualLeaves: 10,
         sickLeaves: 12,
@@ -122,13 +126,13 @@ const createSampleEmployees = async () => {
           city: "Seattle",
           state: "Washington",
           country: "USA",
-          zipCode: "98101"
+          zipCode: "98101",
         },
         emergencyContact: {
           name: "Lisa Chen",
           relationship: "Sister",
           phone: "+1-555-0105",
-          email: "lisa.chen@email.com"
+          email: "lisa.chen@email.com",
         },
 
         // Employment Details
@@ -142,8 +146,12 @@ const createSampleEmployees = async () => {
         skills: [
           { name: "React", level: "Advanced", category: "Frontend" },
           { name: "JavaScript", level: "Advanced", category: "Programming" },
-          { name: "TypeScript", level: "Intermediate", category: "Programming" },
-          { name: "CSS", level: "Advanced", category: "Frontend" }
+          {
+            name: "TypeScript",
+            level: "Intermediate",
+            category: "Programming",
+          },
+          { name: "CSS", level: "Advanced", category: "Frontend" },
         ],
 
         // Bank Details
@@ -152,7 +160,7 @@ const createSampleEmployees = async () => {
           accountNumber: "****5432",
           routingNumber: "026009593",
           accountType: "Checking",
-          accountHolderName: "David Chen"
+          accountHolderName: "David Chen",
         },
 
         // Preferences
@@ -169,10 +177,10 @@ const createSampleEmployees = async () => {
             leaveRequests: true,
             attendance: true,
             payroll: true,
-            announcements: false
-          }
-        }
-      }
+            announcements: false,
+          },
+        },
+      },
     ];
 
     // Check if employees already exist
@@ -180,18 +188,22 @@ const createSampleEmployees = async () => {
       const existingEmployee = await Employee.findOne({
         $or: [
           { email: employeeData.email },
-          { employeeId: employeeData.employeeId }
-        ]
+          { employeeId: employeeData.employeeId },
+        ],
       });
 
       if (existingEmployee) {
-        console.log(`⚠️  Employee with email ${employeeData.email} or ID ${employeeData.employeeId} already exists. Skipping...`);
+        console.log(
+          `⚠️  Employee with email ${employeeData.email} or ID ${employeeData.employeeId} already exists. Skipping...`
+        );
         continue;
       }
 
       const employee = new Employee(employeeData);
       await employee.save();
-      console.log(`✅ Created employee: ${employeeData.name} (${employeeData.employeeId})`);
+      console.log(
+        `✅ Created employee: ${employeeData.name} (${employeeData.employeeId})`
+      );
     }
 
     console.log("\n🎉 Sample employees created successfully!");
@@ -211,8 +223,9 @@ const createSampleEmployees = async () => {
     console.log("Department: Engineering");
     console.log("Designation: Frontend Developer");
     console.log("================================");
-    console.log("\n🔑 Use these credentials to test the employee onboarding process!");
-
+    console.log(
+      "\n🔑 Use these credentials to test the employee onboarding process!"
+    );
   } catch (error) {
     console.error("❌ Error creating sample employees:", error);
   }

@@ -396,4 +396,85 @@ router.get('/pending', async (req, res) => {
   }
 });
 
+// @desc Get employees on leave today
+// @route GET /api/leave/on-leave-today
+// @access Private (HR/Manager)
+router.get('/on-leave-today', async (req, res) => {
+  try {
+    // Get today's date in UTC format
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Find all approved leave requests where today falls within the leave period
+    const onLeaveToday = await LeaveRequest.find({
+      status: 'approved',
+      startDate: { $lte: today },
+      endDate: { $gte: today }
+    })
+    .populate('employeeId', 'name email department designation profilePicture')
+    .select('leaveType startDate endDate duration isHalfDay halfDayType')
+    .sort({ 'employeeId.name': 1 });
+
+    // Format the response data
+    const formattedData = onLeaveToday.map(leave => ({
+      id: leave._id,
+      employeeId: leave.employeeId._id,
+      name: leave.employeeId.name,
+      email: leave.employeeId.email,
+      department: leave.employeeId.department,
+      designation: leave.employeeId.designation,
+      profilePicture: leave.employeeId.profilePicture,
+      leaveType: leave.leaveType,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      duration: leave.duration,
+      isHalfDay: leave.isHalfDay,
+      halfDayType: leave.halfDayType,
+      // Format leave period for display
+      leavePeriod: formatLeavePeriod(leave.startDate, leave.endDate, leave.isHalfDay, leave.halfDayType)
+    }));
+
+    res.json({
+      success: true,
+      data: formattedData,
+      count: formattedData.length,
+      date: today.toISOString().split('T')[0]
+    });
+
+  } catch (error) {
+    console.error('Error fetching employees on leave today:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch employees on leave today',
+      error: error.message
+    });
+  }
+});
+
+// Helper function to format leave period
+function formatLeavePeriod(startDate, endDate, isHalfDay, halfDayType) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short'
+    });
+  };
+
+  if (isHalfDay) {
+    return `${formatDate(start)} (${halfDayType === 'firstHalf' ? 'First Half' : 'Second Half'})`;
+  }
+
+  if (start.toDateString() === end.toDateString()) {
+    return formatDate(start);
+  }
+
+  return `${formatDate(start)} - ${formatDate(end)}`;
+}
+
 module.exports = router;
