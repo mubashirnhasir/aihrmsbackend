@@ -11,6 +11,7 @@ const holidaysRoutes = require("./routes/holidaysRoutes");
 const employeeRetentionRoutes = require("./routes/employeeRetentionRoutes");
 const aiScreeningRoutes = require("./routes/aiScreeningRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const invoiceRoutes = require("./routes/invoiceRoutes");
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -37,6 +38,7 @@ app.use("/api/holidays", holidaysRoutes);
 app.use("/api/employee-retention", employeeRetentionRoutes);
 app.use("/api/ai-screening", aiScreeningRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/invoices", invoiceRoutes);
 
 // Static files
 app.use("/uploads", express.static("uploads"));
