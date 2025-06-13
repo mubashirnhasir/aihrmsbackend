@@ -112,6 +112,85 @@ router.post('/request', async (req, res) => {
   }
 });
 
+// @desc Get all leave requests for admin (with filters)
+// @route GET /api/leave/requests/all
+// @access Private (Admin/HR)
+router.get('/requests/all', async (req, res) => {
+  try {
+    const { status, department, limit = 50, page = 1, year } = req.query;
+
+    // Build query for employees with leave requests
+    let employeeQuery = {};
+    
+    if (department && department !== 'all') {
+      employeeQuery.department = department;
+    }
+
+    // Get all employees with leave requests
+    const employees = await Employee.find(employeeQuery).select('name email department designation leaveRequests');
+
+    // Extract and flatten all leave requests
+    let allRequests = [];
+    
+    employees.forEach(employee => {
+      const empRequests = employee.leaveRequests.map(req => ({
+        ...req.toObject(),
+        _id: req._id,
+        employeeId: {
+          _id: employee._id,
+          name: employee.name,
+          email: employee.email,
+          department: employee.department,
+          designation: employee.designation
+        }
+      }));
+      
+      allRequests = allRequests.concat(empRequests);
+    });
+
+    // Filter by status if specified
+    if (status && status !== 'all') {
+      allRequests = allRequests.filter(req => req.status === status);
+    }
+
+    // Filter by year if specified
+    if (year) {
+      const startOfYear = new Date(year, 0, 1);
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+      allRequests = allRequests.filter(req => {
+        const startDate = new Date(req.startDate);
+        return startDate >= startOfYear && startDate <= endOfYear;
+      });
+    }
+
+    // Sort by appliedOn date (most recent first)
+    allRequests.sort((a, b) => new Date(b.appliedOn || b.createdAt) - new Date(a.appliedOn || a.createdAt));
+
+    // Apply pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedRequests = allRequests.slice(skip, skip + parseInt(limit));
+
+    res.json({
+      success: true,
+      data: paginatedRequests,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(allRequests.length / parseInt(limit)),
+        count: paginatedRequests.length,
+        totalRecords: allRequests.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching leave requests:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch leave requests',
+      error: error.message
+    });
+  }
+});
+
 // @desc Get leave requests for an employee
 // @route GET /api/leave/requests/:employeeId
 // @access Private (Employee)
@@ -227,8 +306,21 @@ router.put('/request/:requestId/status', async (req, res) => {
       });
     }
 
-    // Find leave request
-    const leaveRequest = await LeaveRequest.findById(requestId);
+    // Find employee with the leave request
+    const employee = await Employee.findOne({
+      'leaveRequests._id': requestId
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    // Find the specific leave request
+    const leaveRequest = employee.leaveRequests.id(requestId);
+    
     if (!leaveRequest) {
       return res.status(404).json({
         success: false,
@@ -244,7 +336,7 @@ router.put('/request/:requestId/status', async (req, res) => {
       });
     }
 
-    // Update leave request
+    // Update leave request status
     leaveRequest.status = status;
     leaveRequest.approvedBy = approvedBy;
     leaveRequest.approvedAt = new Date();
@@ -253,34 +345,46 @@ router.put('/request/:requestId/status', async (req, res) => {
       leaveRequest.rejectionReason = rejectionReason || '';
     }
 
-    await leaveRequest.save();
-
-    // If approved, update leave balance
+    // If approved, update leave balance in the employee document
     if (status === 'approved') {
-      const currentYear = new Date().getFullYear();
-      let leaveBalance = await LeaveBalance.findOne({ 
-        employeeId: leaveRequest.employeeId, 
-        year: currentYear 
-      });
-
-      if (!leaveBalance) {
-        leaveBalance = await LeaveBalance.initializeForEmployee(leaveRequest.employeeId, currentYear);
+      const leaveType = leaveRequest.type;
+      const duration = Math.ceil((new Date(leaveRequest.endDate) - new Date(leaveRequest.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+      
+      if (leaveRequest.halfDay) {
+        duration = 0.5;
       }
 
-      // Update balance
-      leaveBalance.updateBalance(leaveRequest.leaveType, leaveRequest.duration, 'deduct');
-      await leaveBalance.save();
+      // Update employee leave balances
+      switch (leaveType) {
+        case 'casual':
+          employee.casualLeaves = Math.max(0, (employee.casualLeaves || 1) - duration);
+          break;
+        case 'sick':
+          employee.sickLeaves = Math.max(0, (employee.sickLeaves || 2) - duration);
+          break;
+        case 'earned':
+          employee.earnedLeaves = Math.max(0, (employee.earnedLeaves || 1) - duration);
+          break;
+        case 'unpaid':
+          employee.unpaidLeaves = (employee.unpaidLeaves || 0) + duration;
+          break;
+      }
     }
 
-    // Populate employee details
-    await leaveRequest.populate('employeeId', 'name email department');
-    await leaveRequest.populate('approvedBy', 'name email');
+    await employee.save();
 
     res.json({
       success: true,
       message: `Leave request ${status} successfully`,
-      data: leaveRequest
-    });
+      data: {
+        ...leaveRequest.toObject(),
+        employeeId: {
+          _id: employee._id,
+          name: employee.name,
+          email: employee.email,
+          department: employee.department
+        }
+      }    });
 
   } catch (error) {
     console.error('Error updating leave request status:', error);
@@ -348,100 +452,135 @@ router.put('/request/:requestId/cancel', async (req, res) => {
 // @desc Get all pending leave requests (for managers/HR)
 // @route GET /api/leave/pending
 // @access Private (Manager/HR)
+// @desc Get pending leave requests for admin
+// @route GET /api/leave/pending
+// @access Private (Admin/HR)
 router.get('/pending', async (req, res) => {
   try {
     const { department, limit = 50, page = 1 } = req.query;
 
-    // Build query
-    let query = { status: 'pending' };
+    // Get all employees with pending leave requests
+    const employees = await Employee.find({
+      'leaveRequests.status': 'pending'
+    }).select('name email department designation leaveRequests');
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Get pending leave requests
-    let leaveRequests = await LeaveRequest.find(query)
-      .populate('employeeId', 'name email department designation')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip(skip);
+    // Extract and flatten all pending leave requests
+    let pendingRequests = [];
+    
+    employees.forEach(employee => {
+      const empPendingRequests = employee.leaveRequests
+        .filter(req => req.status === 'pending')
+        .map(req => ({
+          ...req.toObject(),
+          _id: req._id,
+          employeeId: {
+            _id: employee._id,
+            name: employee.name,
+            email: employee.email,
+            department: employee.department,
+            designation: employee.designation
+          }
+        }));
+      
+      pendingRequests = pendingRequests.concat(empPendingRequests);
+    });
 
     // Filter by department if specified
     if (department && department !== 'all') {
-      leaveRequests = leaveRequests.filter(req => 
+      pendingRequests = pendingRequests.filter(req => 
         req.employeeId && req.employeeId.department === department
       );
     }
 
-    // Get total count
-    const total = await LeaveRequest.countDocuments(query);
+    // Sort by appliedOn date (most recent first)
+    pendingRequests.sort((a, b) => new Date(b.appliedOn || b.createdAt) - new Date(a.appliedOn || a.createdAt));
+
+    // Apply pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedRequests = pendingRequests.slice(skip, skip + parseInt(limit));
 
     res.json({
       success: true,
-      data: leaveRequests,
+      data: paginatedRequests,
       pagination: {
         current: parseInt(page),
-        total: Math.ceil(total / parseInt(limit)),
-        count: leaveRequests.length,
-        totalRecords: total
+        total: Math.ceil(pendingRequests.length / parseInt(limit)),
+        count: paginatedRequests.length,
+        totalRecords: pendingRequests.length
       }
     });
 
   } catch (error) {
     console.error('Error fetching pending leave requests:', error);
     res.status(500).json({
-      success: false,
-      message: 'Failed to fetch pending leave requests',
+      success: false,      message: 'Failed to fetch pending leave requests',
       error: error.message
     });
   }
 });
 
 // @desc Get employees on leave today
-// @route GET /api/leave/on-leave-today
+// @route GET /api/leaves/on-leave-today
 // @access Private (HR/Manager)
 router.get('/on-leave-today', async (req, res) => {
   try {
-    // Get today's date in UTC format
+    // Get today's date in the local timezone (India Standard Time)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayIST = new Date(today.getTime() + (5.5 * 60 * 60 * 1000)); // Convert to IST
+    todayIST.setHours(0, 0, 0, 0);
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Create date range for today in IST
+    const startOfToday = new Date(todayIST);
+    const endOfToday = new Date(todayIST);
+    endOfToday.setHours(23, 59, 59, 999);
 
-    // Find all approved leave requests where today falls within the leave period
-    const onLeaveToday = await LeaveRequest.find({
-      status: 'approved',
-      startDate: { $lte: today },
-      endDate: { $gte: today }
-    })
-    .populate('employeeId', 'name email department designation profilePicture')
-    .select('leaveType startDate endDate duration isHalfDay halfDayType')
-    .sort({ 'employeeId.name': 1 });
+    // Find employees with approved leave requests for today
+    const employeesOnLeave = await Employee.find({
+      'leaveRequests': {
+        $elemMatch: {
+          status: 'approved',
+          startDate: { $lte: endOfToday },
+          endDate: { $gte: startOfToday }
+        }
+      }
+    }).select('name email department designation profilePicture leaveRequests');
 
     // Format the response data
-    const formattedData = onLeaveToday.map(leave => ({
-      id: leave._id,
-      employeeId: leave.employeeId._id,
-      name: leave.employeeId.name,
-      email: leave.employeeId.email,
-      department: leave.employeeId.department,
-      designation: leave.employeeId.designation,
-      profilePicture: leave.employeeId.profilePicture,
-      leaveType: leave.leaveType,
-      startDate: leave.startDate,
-      endDate: leave.endDate,
-      duration: leave.duration,
-      isHalfDay: leave.isHalfDay,
-      halfDayType: leave.halfDayType,
-      // Format leave period for display
-      leavePeriod: formatLeavePeriod(leave.startDate, leave.endDate, leave.isHalfDay, leave.halfDayType)
-    }));
+    const formattedData = [];    employeesOnLeave.forEach(employee => {
+      // Find the current active leave request for this employee
+      const activeLeave = employee.leaveRequests.find(leave => {
+        if (leave.status !== 'approved') return false;
+        
+        const leaveStart = new Date(leave.startDate);
+        const leaveEnd = new Date(leave.endDate);
+        
+        // Check if today falls within the leave period
+        return leaveStart <= endOfToday && leaveEnd >= startOfToday;
+      });
+
+      if (activeLeave) {
+        formattedData.push({
+          id: activeLeave._id,
+          employeeId: employee._id,
+          name: employee.name,
+          email: employee.email,
+          department: employee.department,
+          designation: employee.designation,
+          profilePicture: employee.profilePicture,
+          leaveType: activeLeave.type,
+          startDate: activeLeave.startDate,
+          endDate: activeLeave.endDate,
+          duration: activeLeave.duration || calculateDuration(activeLeave.startDate, activeLeave.endDate),
+          isHalfDay: activeLeave.halfDay || false,
+          halfDayType: activeLeave.halfDayType || null
+        });
+      }
+    });
 
     res.json({
       success: true,
       data: formattedData,
-      count: formattedData.length,
-      date: today.toISOString().split('T')[0]
+      count: formattedData.length
     });
 
   } catch (error) {
@@ -454,27 +593,12 @@ router.get('/on-leave-today', async (req, res) => {
   }
 });
 
-// Helper function to format leave period
-function formatLeavePeriod(startDate, endDate, isHalfDay, halfDayType) {
+// Helper function to calculate duration
+function calculateDuration(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short'
-    });
-  };
-
-  if (isHalfDay) {
-    return `${formatDate(start)} (${halfDayType === 'firstHalf' ? 'First Half' : 'Second Half'})`;
-  }
-
-  if (start.toDateString() === end.toDateString()) {
-    return formatDate(start);
-  }
-
-  return `${formatDate(start)} - ${formatDate(end)}`;
+  const timeDiff = end.getTime() - start.getTime();
+  return Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1;
 }
 
 module.exports = router;
