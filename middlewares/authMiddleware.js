@@ -16,11 +16,11 @@ const verifyToken = (req, res, next) => {
 
     try {
       // Handle placeholder admin token for testing
-      if (token === 'admin-token-placeholder') {
-        req.user = { 
-          id: 'admin', 
-          role: 'admin',
-          name: 'Admin User'
+      if (token === "admin-token-placeholder") {
+        req.user = {
+          id: "admin",
+          role: "admin",
+          name: "Admin User",
         };
         console.log("✅ Admin token accepted for user:", req.user.id);
         next();

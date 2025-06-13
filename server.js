@@ -16,21 +16,18 @@ const invoiceRoutes = require("./routes/invoiceRoutes");
 const app = express();
 const port = process.env.PORT || 5001;
 
-
 app.use(cors());
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
 // Connect DB
 connectDb();
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/employees", userRoutes); 
+app.use("/api/employees", userRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/employee", employeeRoutes);
 app.use("/api/leaves", leaveRoutes);

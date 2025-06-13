@@ -19,14 +19,17 @@ router.post("/", authMiddleware, async (req, res) => {
       items,
       currency,
       notes,
-      pdfData
-    } = req.body;    // Calculate totals
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.amount), 0);
+      pdfData,
+    } = req.body; // Calculate totals
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.quantity * item.amount,
+      0
+    );
     const total = subtotal; // Add tax calculation here if needed    // Handle createdBy field - for placeholder admin token, use string directly
     let createdBy = req.user.id;
-    if (typeof createdBy === 'string' && createdBy === 'admin') {
+    if (typeof createdBy === "string" && createdBy === "admin") {
       // Keep as string for placeholder admin
-      createdBy = 'admin';
+      createdBy = "admin";
     }
 
     const invoice = new Invoice({
@@ -41,7 +44,7 @@ router.post("/", authMiddleware, async (req, res) => {
       total,
       notes,
       pdfData,
-      createdBy: createdBy
+      createdBy: createdBy,
     });
 
     await invoice.save();
@@ -49,23 +52,22 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Invoice created successfully",
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error creating invoice:", error);
-    
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: "Invoice number already exists"
+        message: "Invoice number already exists",
       });
     }
 
     res.status(500).json({
       success: false,
       message: "Failed to create invoice",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -76,9 +78,10 @@ router.post("/", authMiddleware, async (req, res) => {
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { status, limit = 10, page = 1 } = req.query;
-    
+
     const filter = {};
-    if (status) filter.status = status;    const invoices = await Invoice.find(filter)
+    if (status) filter.status = status;
+    const invoices = await Invoice.find(filter)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
@@ -92,16 +95,15 @@ router.get("/", authMiddleware, async (req, res) => {
         current: parseInt(page),
         total: Math.ceil(total / parseInt(limit)),
         count: invoices.length,
-        totalItems: total
-      }
+        totalItems: total,
+      },
     });
-
   } catch (error) {
     console.error("Error fetching invoices:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch invoices",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -110,26 +112,26 @@ router.get("/", authMiddleware, async (req, res) => {
 // @route GET /api/invoices/:id
 // @access Private
 router.get("/:id", authMiddleware, async (req, res) => {
-  try {    const invoice = await Invoice.findById(req.params.id);
+  try {
+    const invoice = await Invoice.findById(req.params.id);
 
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     res.json({
       success: true,
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error fetching invoice:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch invoice",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -144,30 +146,32 @@ router.get("/:id/download", authMiddleware, async (req, res) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     if (!invoice.pdfData) {
       return res.status(404).json({
         success: false,
-        message: "PDF data not found for this invoice"
+        message: "PDF data not found for this invoice",
       });
     }
 
     // Convert base64 to buffer
-    const pdfBuffer = Buffer.from(invoice.pdfData, 'base64');
+    const pdfBuffer = Buffer.from(invoice.pdfData, "base64");
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`
+    );
     res.send(pdfBuffer);
-
   } catch (error) {
     console.error("Error downloading invoice:", error);
     res.status(500).json({
       success: false,
       message: "Failed to download invoice",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -182,13 +186,13 @@ router.put("/:id", authMiddleware, async (req, res) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
     // Update only allowed fields
-    const updateFields = ['status', 'notes', 'dueDate'];
-    updateFields.forEach(field => {
+    const updateFields = ["status", "notes", "dueDate"];
+    updateFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         invoice[field] = req.body[field];
       }
@@ -199,15 +203,14 @@ router.put("/:id", authMiddleware, async (req, res) => {
     res.json({
       success: true,
       message: "Invoice updated successfully",
-      data: invoice
+      data: invoice,
     });
-
   } catch (error) {
     console.error("Error updating invoice:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update invoice",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -222,7 +225,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: "Invoice not found"
+        message: "Invoice not found",
       });
     }
 
@@ -230,15 +233,14 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      message: "Invoice deleted successfully"
+      message: "Invoice deleted successfully",
     });
-
   } catch (error) {
     console.error("Error deleting invoice:", error);
     res.status(500).json({
       success: false,
       message: "Failed to delete invoice",
-      error: error.message
+      error: error.message,
     });
   }
 });
