@@ -75,7 +75,7 @@ router.post("/", authMiddleware, async (req, res) => {
 // @desc Get all invoices
 // @route GET /api/invoices
 // @access Private
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { status, limit = 10, page = 1 } = req.query;
 
